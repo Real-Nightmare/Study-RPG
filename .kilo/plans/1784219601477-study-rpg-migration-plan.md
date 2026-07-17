@@ -190,11 +190,59 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Access passes: unlock premium programmes, exclusive study zones
 - Programme creation: cost SLC to submit a programme for approval
 
-### Block Tales Inspiration
-- Turn-based progression feel: each study session is a "battle" against a topic
-- Card/deck metaphor: study sets = card decks, quizzes = boss fights
-- Level/XP system retained from Studyield with SLC layered on top
-- Character identity through cosmetics purchased with SLC
+### Block Tales-Inspired Battle System
+- Turn-based card combat against study-themed monsters (exact copy of Block Tales mechanics adapted for web)
+- Cards represent study actions: Attack = answer correctly, Defend = use hint/review, Heal = reinforce knowledge
+- Monster abilities = common study difficulties (distractors, time pressure, confusion)
+- Win by reducing monster HP to 0 before player HP reaches 0
+- SP economy: cards cost SP, SP regenerates each turn (simplified from Block Tales)
+- Guard timing: block monster attacks for reduced damage (simplified implementation)
+- Card decks = study sets; equipping cards = selecting which study tools to bring into battle
+
+### Worlds & Portals (Progression Map)
+- **Overworld**: Beginner/intermediate topics, multiple subsections, mini-bosses, final boss to unlock next world
+- **Otherworld**: Glitched/hard mode version of Overworld (Pig 64 Roblox-inspired), advanced topics
+- **The End**: Final boss, mastery exam, beats the main game
+- **The Limbo**: Endgame portal, requires beating The End + reaching level 35 (future update, not in initial release)
+
+### Card System
+- **Rarity tiers**: Common, Super Rare, **Legendary, Mythic** (only Legendary/Mythic are non-earnable — must come from battlepass/events)
+- **Abilities per card**: Common/Super Rare = 3 abilities; Legendary/Mythic = 4 abilities
+- **Card Marketplace**: Earnable cards (Common–Super Rare) can be bought/traded with SLC
+- **Ability Shop**: Buy abilities with SLC; abilities replace existing card abilities (limited slots)
+
+### Battlepass
+- Season-based, one month per season, new season each month with new rewards
+- EXP earned through Event Missions and study activities (separate from level XP)
+- Battlepass tracks EXP progression; final reward = Legendary card (requires high EXP)
+- Rewards include: cards, items, abilities, cosmetics, XP boosts
+- AI generates seasonal mission pools based on user notes/text
+
+### Event Missions
+- AI-chosen missions based on user notes and submitted text
+- Understanding-based questions (not rote memorization)
+- Good EXP rewards (for battlepass) + XP (for levels)
+- Timed/limited availability aligned with battlepass seasons
+
+### Item Shop
+- Buy items with SLC
+- Items counter specific monster abilities (e.g., "Focus Orb" reduces monster confusion chance)
+- Consumable or equippable depending on item type
+
+### Deflationary SLC Sinks (Spending)
+- Card marketplace (Common–Super Rare cards)
+- Ability shop (buy/replace card abilities)
+- Item shop (battle consumables)
+- Programme creation submission fee
+- Cosmetic shop (avatar skins, titles, profile themes, card backs)
+
+### RPG Progression Loop
+1. Study → earn XP (levels) + EXP (battlepass) + SLC (currency)
+2. Level up → unlock new worlds/portals
+3. Earn SLC → buy cards, abilities, items, cosmetics
+4. Equip cards/abilities → enter battles (Block Tales-style combat)
+5. Win battles → progress through worlds, earn more rewards
+6. Complete Event Missions → battlepass EXP → Legendary/Mythic cards
 
 ### Admin/Teacher Controls
 - Create Missions with custom SLC rewards
