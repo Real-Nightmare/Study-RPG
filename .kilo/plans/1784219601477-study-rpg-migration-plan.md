@@ -7,15 +7,32 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ## Architecture
 
-| Layer | Technology | Primary Host | Fallback Host |
-|-------|-----------|-------------|--------------|
-| Frontend | React 19 + Vite (static build) | Cloudflare Pages | — |
-| Backend API | NestJS 10 (existing codebase) | MonkeysCloud | Render |
-| Database | PostgreSQL | MonkeysCloud (included) | Render free Postgres / Neon |
-| Cache | Redis | MonkeysCloud (included) | Upstash Redis (free tier) |
-| Real-time | Socket.io | MonkeysCloud | Render (paid only — see note) |
-| Auth | JWT (username + password) | MonkeysCloud | — |
-| AI/LLM | Multi-provider (OpenRouter, Groq, Together AI, NAVY AI, Custom OpenAI-compatible) | Called from NestJS backend | — |
+**Two-project split on MonkeysCloud** (one stack per project constraint):
+
+| Project | Stack | Role | Host |
+|---------|-------|------|------|
+| **Frontend** | React 19 + Vite (static build) | SPA, Cloudflare Pages | Cloudflare Pages |
+| **Project 1: App Server** | Next.js | API routes, AI/LLM, WebSocket, RPG calculations, business logic, Pages Functions proxy | MonkeysCloud |
+| **Project 2: Data Server** | PHP + MonkeyLegions | Database proxy, CRUD, pgvector search, audit logs | MonkeysCloud |
+
+**Database:**
+- Primary: MonkeysCloud PostgreSQL (unified provider, both projects connect)
+- Fallback: Neon PostgreSQL (free, pgvector included, no expiry) — use if MonkeysCloud doesn't allow cross-project DB sharing
+
+**Data flow:**
+```
+Frontend → Next.js API Routes → PHP API → PostgreSQL
+                    ↓
+              WebSocket (Socket.io on Next.js)
+                    ↓
+           LLM providers + RPG calculations
+```
+
+**Why two projects:**
+- MonkeysCloud restricts each project to one stack
+- Next.js handles app logic, AI, real-time features
+- PHP/MonkeyLegions handles data layer with pgvector
+- Both on same provider, same region, low latency between them
 
 ---
 
@@ -111,7 +128,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   {
     "version": 1,
     "include": ["/*"],
-    "exclude": ["/api/*", "/assets/*"]
+    "exclude": ["/assets/*"]
   }
   ```
 - Update `vite.config.ts` build output if needed (ensure `dist/` is correct)
@@ -120,28 +137,48 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - Build output: `dist`
   - Root directory: `frontend/`
   - No custom domain needed — use default `*.pages.dev` or Cloudflare-provided domain
-- Add `.env` variable documentation for Vite `VITE_API_URL` pointing to MonkeysCloud backend URL
+- Add `.env` variable documentation:
+  - `VITE_API_URL`: `/api` (proxied through Pages Functions)
+  - `VITE_WS_URL`: Next.js app server WebSocket URL (e.g., `https://app-server.monkeyscloud.com`)
 
-### 3. Backend AI Feature Redesign (remove Qdrant, recreate tools with multi-provider LLM + PostgreSQL)
-- Remove Qdrant module and all vector embedding logic
-- Add multi-provider LLM support with automatic fallback:
-  - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI, Custom OpenAI-compatible
-  - Admin can add/remove/reorder providers at runtime via admin interface
-  - Providers stored in DB: name, provider type, API key, base URL, model name, priority order
-  - Backend tries providers in sequence if one fails (rate limit, outage, quota exhausted)
-  - All AI features use this fallback chain
-- **RAG replacement**: Store uploaded document text in PostgreSQL. For retrieval, use LLM-based semantic search — send query + document chunks to LLM with prompt to identify relevant passages. No vector DB needed; LLM does the semantic matching directly.
-- **PDF parsing**: Use `pdf-parse` or `pdf.js` on backend to extract text from uploaded PDFs before sending to LLM.
+### 3. Pages Functions Proxy (API routing)
+- Create `functions/api/[[path]].ts` in frontend/
+- Proxies all `/api/*` requests to Next.js app server
+- Environment variable: `BACKEND_URL` = Next.js app server URL on MonkeysCloud
+- Handles CORS preflight (`OPTIONS`) with `Access-Control-Allow-Origin: *`
+- Forwards all HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- WebSocket connections bypass Pages Functions — frontend connects directly to Next.js WebSocket URL
 
-#### Tool Redesigns (accurate recreations, not simplified)
+### 4. Next.js App Server (Project 1 on MonkeysCloud)
+- Stack: Next.js (Node.js)
+- Role: API routes, AI/LLM, WebSocket, RPG calculations, business logic
+- Contains:
+  - Next.js API routes for all non-data operations
+  - Socket.io server for real-time features (Live Quiz, Collaborative Exam, Chat, Research, Problem Solver, Exam Clone)
+  - LLM provider management and fallback chain
+  - RPG battle calculations, card effects, area progression logic
+  - Mission assessment, Revision Centre quiz generation, CBT generation, Event Mission generation, Programme evaluation
+  - Calls PHP Data Server for all database operations
+- WebSocket CORS: allow Cloudflare Pages origin
+- Environment variables:
+  - `DATA_SERVER_URL`: PHP app server URL on MonkeysCloud
+  - `JWT_SECRET`: shared with frontend (for WebSocket auth)
+  - `CORS_ORIGIN`: Cloudflare Pages domain
 
-**1. AI Chat (RAG)** → Full conversational study tutor with document context
-- User uploads documents (PDF, DOCX, TXT) or pastes text
-- Backend extracts text, stores in PostgreSQL with user_id + document_id
-- Chat messages include: user query + relevant document passages (retrieved via LLM semantic search on stored text)
-- LLM responds as study tutor, grounded in provided documents
-- Conversation history maintained per session
-- Frontend: chat UI with document upload, message history, source citations
+### 5. PHP Data Server (Project 2 on MonkeysCloud)
+- Stack: PHP + MonkeyLegions ORM
+- Role: Database proxy, CRUD, pgvector search, audit logs
+- Contains:
+  - REST API for all CRUD operations (users, study sets, flashcards, notes, documents, etc.)
+  - PgVectorService for vector search (replaces Qdrant)
+  - Audit log endpoints
+  - LLM provider CRUD endpoints (admin only)
+  - User management endpoints (create users, change roles)
+- Reads/writes to PostgreSQL directly
+- Environment variables:
+  - `DATABASE_URL`: PostgreSQL connection string
+  - `JWT_SECRET`: shared with Next.js (for API auth)
+  - `CORS_ORIGIN`: Next.js app server URL
 - No RAG pipeline needed — LLM does retrieval + generation in one call
 
 **2. Deep Research** → RAG-powered research report generator
@@ -218,52 +255,76 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Event Mission generation (AI generates understanding-based questions from user notes)
 - Programme evaluation (AI evaluates programme quality, pedagogical soundness, feasibility)
 
-### 4. Database Adjustments
-- Keep existing PostgreSQL schema (MonkeysCloud provides Postgres)
-- Remove Qdrant-related tables/migrations
-- Remove ClickHouse-related setup
-- Simplify analytics tables if needed
-- Update TypeORM/Prisma connection config for MonkeysCloud env vars
-- Add `audit_logs` table:
-  - `id`, `actor_username`, `action` (e.g., "user.role_changed", "mission.created", "programme.approved")
-  - `target_type` (user, mission, programme, etc.), `target_id`
-  - `old_value`, `new_value` (JSON)
-  - `timestamp`
-  - Indexed by actor + timestamp for fast queries
-- **Fallback DB**: Simplified hot failover — app tries primary `DATABASE_URL` first, if connection fails it automatically falls back to `DATABASE_URL_FALLBACK`. No complex sync, just failover. Schema stays the same.
-- **Fallback Cache**: Simplified hot failover — same pattern for Redis `REDIS_URL` and `REDIS_URL_FALLBACK`.
+### 4. Database Setup
+- Primary: MonkeysCloud PostgreSQL 16 (both projects connect to same DB)
+- Fallback: Neon PostgreSQL (free, pgvector included, no expiry)
+- Run migrations on chosen database:
+  - `CREATE EXTENSION IF NOT EXISTS vector;` (pgvector)
+  - All existing Studyield schema migrations
+  - New migrations: `audit_logs`, `llm_providers`, `slc_wallets`, `xp_records`, `levels`, `user_levels`, `areas`, `worlds`, `monsters`, `user_progress`, `cards`, `user_cards`, `card_marketplace`, `battlepass_seasons`, `battlepass_tiers`, `user_battlepass`, `event_missions`, `abilities`, `items`, `cosmetics`, `revision_centre_funds`, `programmes`, `cbt_sessions`, `cbt_votes`
+- Seed initial game content (monsters, cards, areas, battlepass season 1)
+- Seed admin account (Nightmare / Joshua Martin / N1GHTMAREISGoD@123)
 
-### 5. Backend Deployment to MonkeysCloud
-- Create `Dockerfile` for NestJS backend (MonkeysCloud supports Docker)
-- Or use MonkeysCloud's Node.js native buildpack (auto-detect)
-- Configure environment variables:
-  - `DATABASE_URL` — MonkeysCloud PostgreSQL connection string
-  - `REDIS_URL` — MonkeysCloud Redis connection string
-  - `JWT_SECRET` — generate new secret
+### 5. PHP Data Server Deployment (Project 2 on MonkeysCloud)
+- Stack: PHP + MonkeyLegions ORM
+- Auto-detected by MonkeysCloud on push
+- Environment variables:
+  - `DATABASE_URL` — PostgreSQL connection string (MonkeysCloud or Neon)
+  - `JWT_SECRET` — shared secret (same as Next.js)
+  - `CORS_ORIGIN` — Next.js app server URL
+- API endpoints:
+  - All CRUD operations (users, study sets, flashcards, notes, documents, etc.)
+  - `POST /pgvector/search` — hybrid vector + full-text search
+  - `POST /admin/users` — create user (admin/teacher only)
+  - `PUT /admin/users/:id/role` — change role
+  - `GET /admin/audit-logs` — view audit logs
+  - `POST /admin/llm-providers` — add LLM provider
+  - `GET /admin/llm-providers` — list providers
+  - `PUT /admin/llm-providers/:id` — update provider
+  - `DELETE /admin/llm-providers/:id` — delete provider
+- CORS: allow Next.js app server origin
+
+### 6. Next.js App Server Deployment (Project 1 on MonkeysCloud)
+- Stack: Next.js (Node.js)
+- Auto-detected by MonkeysCloud on push
+- Environment variables:
+  - `DATA_SERVER_URL` — PHP app server URL on MonkeysCloud
+  - `JWT_SECRET` — shared secret (same as PHP)
   - `CORS_ORIGIN` — Cloudflare Pages domain
-  - `ADMIN_DEFAULT_PASSWORD` — password for pre-seeded Nightmare account
-- **LLM providers are DB-managed**: Admin adds providers via admin interface (no env vars needed for individual providers). Primary provider can be set as default via env var `LLM_PRIMARY_PROVIDER` for bootstrapping.
-- Update CORS to allow Cloudflare Pages origin
-- Enable WebSocket support in NestJS gateway config
-- **Fallback**: If MonkeysCloud has issues, deploy to Render (free tier, sleeps after 15 min). Same Dockerfile, just change platform. Database stays on MonkeysCloud or switches to Render free Postgres.
+  - `OPENROUTER_API_KEY` — primary LLM key
+  - `GROQ_API_KEY` — fallback
+  - `TOGETHER_API_KEY` — fallback
+  - `NAVY_API_KEY` — fallback
+- Contains:
+  - Next.js API routes for app logic
+  - Socket.io server for WebSocket features
+  - LLM fallback chain
+  - RPG battle calculations
+  - Pages Functions proxy config (if using Next.js API routes as proxy)
+- WebSocket CORS: allow Cloudflare Pages origin
 
-### 6. Frontend API Config
-- Update API base URL to MonkeysCloud backend URL
-- Ensure all `fetch`/React Query calls use the new base URL
-- Test WebSocket connection to MonkeysCloud backend
+### 7. Frontend API Config
+- API base URL: `/api` (proxied through Cloudflare Pages Functions to Next.js)
+- WebSocket URL: `VITE_WS_URL` = Next.js app server URL (direct connection, not proxied)
+- All HTTP requests go through Pages Functions → Next.js → PHP → PostgreSQL
+- WebSocket connections go directly to Next.js server
 
-### 7. Testing & Validation
+### 8. Testing & Validation
 - Build frontend: `npm run build` in `frontend/`
 - Deploy frontend to Cloudflare Pages (connect Git repo)
-- Deploy backend to MonkeysCloud
-- Run database migrations on MonkeysCloud Postgres
+- Deploy PHP Data Server to MonkeysCloud (Project 2)
+- Deploy Next.js App Server to MonkeysCloud (Project 1)
+- Run database migrations on chosen PostgreSQL
+- Test proxy flow: Frontend → Pages Functions → Next.js → PHP → PostgreSQL
 - Test auth flow (login only — accounts created by admin, admin features, audit logs)
 - Test each Main Feature (Flashcards, Quiz, Match, Notes, etc.)
-- Test each Tool (simplified versions with multi-provider fallback)
-- Test Live Quiz multiplayer
-- Test CORS between frontend and backend
+- Test each Tool (full versions with multi-provider fallback)
+- Test Live Quiz multiplayer via WebSocket
+- Test CORS between all layers
 - Test audit logging: verify admin/teacher actions are recorded and visible
 - Verify no broken routes, missing assets, or console errors
+- Test LLM provider failover chain
+- Test pgvector search functionality
 
 ---
 
@@ -417,11 +478,12 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ## Risks
 
-- **MonkeysCloud is new**: Platform may have bugs or change terms. Mitigation: pre-configured fallback to Render or Neon. Database and cache have separate fallbacks too.
+- **MonkeysCloud is new**: Platform may have bugs or change terms. Mitigation: pre-configured fallback to Neon for database. Both MonkeysCloud projects can be redeployed elsewhere if needed.
+- **Cross-project database access**: Verify MonkeysCloud allows both projects to connect to the same PostgreSQL instance. If not, fallback to Neon.
+- **Two-project complexity**: More deployment targets to manage. Mitigation: both on same provider, same region, automated deploys via Git push.
 - **Cold starts**: MonkeysCloud free tier sleeps after 30 min idle. First request after sleep takes 3-5s. Acceptable for class demo.
-- **AI simplification**: Removing RAG/vector search reduces AI quality. Acceptable tradeoff for free hosting.
 - **LLM provider exhaustion**: Multi-provider fallback chain mitigates rate limits/outages, but free tiers have hard caps. Mitigation: use generous free tiers + prompt caching.
 - **Code Sandbox JS-only**: Restricting to browser Web Workers means no Python/NumPy. Students lose Python execution but gain zero server cost.
-- **Render Postgres 90-day expiry**: If we fall back to Render, the free Postgres DB expires every 90 days and must be renewed. Mitigation: use Neon as primary fallback (no expiry), or set calendar reminders to renew.
+- **Neon Postgres free tier limits**: Neon free tier has connection/usage limits. Mitigation: connection pooling via PgBouncer if needed.
 - **Audit log volume**: High admin/teacher activity generates many log rows. Mitigation: set log retention policy (e.g., 90 days), archive old logs.
 - **Teachers = admins**: Full admin rights for teachers is risky. Mitigation: audit logs provide transparency — all teacher actions are visible to other admins.
