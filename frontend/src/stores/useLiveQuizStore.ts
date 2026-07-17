@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
-import { API_CONFIG } from '@/config/api';
+import { WS_URL } from '@/config/api';
 
 interface Player {
   id: string;

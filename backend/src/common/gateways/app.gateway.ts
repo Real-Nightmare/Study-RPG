@@ -11,7 +11,7 @@ import { BaseGateway } from './base.gateway';
 @WebSocketGateway({
   namespace: 'app',
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
     credentials: true,
   },
 })

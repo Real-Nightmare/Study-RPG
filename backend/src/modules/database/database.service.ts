@@ -10,18 +10,40 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    this.pool = new Pool({
-      host: this.configService.get<string>('DATABASE_HOST'),
-      port: this.configService.get<number>('DATABASE_PORT'),
-      user: this.configService.get<string>('DATABASE_USER'),
-      password: this.configService.get<string>('DATABASE_PASSWORD'),
-      database: this.configService.get<string>('DATABASE_NAME'),
-      min: this.configService.get<number>('DATABASE_POOL_MIN', 2),
-      max: this.configService.get<number>('DATABASE_POOL_MAX', 10),
-      keepAlive: true,
-      idleTimeoutMillis: 60000,
-      connectionTimeoutMillis: 30000,
-    });
+    const connectionString = this.configService.get<string>('DATABASE_URL');
+    const poolMin = this.configService.get<number>('DATABASE_POOL_MIN', 2);
+    const poolMax = this.configService.get<number>('DATABASE_POOL_MAX', 10);
+
+    if (connectionString) {
+      // Primary connection method: single DATABASE_URL connection string.
+      const sslEnabled =
+        this.configService.get<string>('DATABASE_SSL') === 'true' ||
+        /[?&]sslmode=require/.test(connectionString);
+
+      this.pool = new Pool({
+        connectionString,
+        ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
+        min: poolMin,
+        max: poolMax,
+        keepAlive: true,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 30000,
+      });
+    } else {
+      // Fallback: individual DATABASE_HOST/PORT/USER/PASSWORD/NAME variables.
+      this.pool = new Pool({
+        host: this.configService.get<string>('DATABASE_HOST'),
+        port: this.configService.get<number>('DATABASE_PORT'),
+        user: this.configService.get<string>('DATABASE_USER'),
+        password: this.configService.get<string>('DATABASE_PASSWORD'),
+        database: this.configService.get<string>('DATABASE_NAME'),
+        min: poolMin,
+        max: poolMax,
+        keepAlive: true,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 30000,
+      });
+    }
 
     this.pool.on('error', (err) => {
       this.logger.error('Unexpected error on idle client', err);

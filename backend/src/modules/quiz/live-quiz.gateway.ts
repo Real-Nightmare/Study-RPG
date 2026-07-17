@@ -13,7 +13,7 @@ import { QuizService } from './quiz.service';
 @WebSocketGateway({
   namespace: 'live-quiz',
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
     credentials: true,
   },
 })

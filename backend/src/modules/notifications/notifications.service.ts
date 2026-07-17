@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../database/database.service';
 import { RedisService } from '../redis/redis.service';
-import { FirebaseService } from '../firebase/firebase.service';
 import { AppGateway } from '../../common/gateways/app.gateway';
 
 export interface Notification {
@@ -42,7 +41,6 @@ export class NotificationsService {
     private readonly configService: ConfigService,
     private readonly db: DatabaseService,
     private readonly redis: RedisService,
-    private readonly firebase: FirebaseService,
     private readonly appGateway: AppGateway,
   ) {}
 
@@ -265,11 +263,13 @@ export class NotificationsService {
         return;
       }
 
-      // Send push notification to all user's devices
-      const successCount = await this.firebase.sendToMultipleDevices(tokens, title, body, data);
+      // Push delivery provider not configured. Tokens are persisted so that a
+      // provider (e.g. web push / APNs / FCM) can be wired in later without
+      // changing the notification pipeline.
       this.logger.debug(
-        `Sent push notification to ${successCount}/${tokens.length} devices for user ${userId}`,
+        `Push notification queued for ${tokens.length} device(s) for user ${userId}: ${title} - ${body}`,
       );
+      void data;
     } catch (error) {
       this.logger.error(`Error sending push notification: ${error.message}`);
     }

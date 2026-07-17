@@ -17,6 +17,8 @@ export const ENDPOINTS = {
     refresh: '/auth/refresh',
     me: '/users/me',
     changePassword: '/auth/change-password',
+    verifyEmail: '/auth/verify-email',
+    resendVerification: '/auth/resend-verification',
   },
   // Users
   users: {
@@ -280,5 +282,14 @@ export const ENDPOINTS = {
       submit: '/rpg/cbt/submit',
       results: (examId: string) => `/rpg/cbt/results/${examId}`,
     },
+  },
+  // Notifications
+  notifications: {
+    list: '/notifications',
+    markAsRead: (id: string) => `/notifications/${id}/read`,
+    markAllAsRead: '/notifications/read-all',
+    delete: (id: string) => `/notifications/${id}`,
+    deleteAll: '/notifications',
+    preferences: '/notifications/preferences',
   },
 };

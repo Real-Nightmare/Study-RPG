@@ -14,7 +14,7 @@ import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 @WebSocketGateway({
   namespace: 'chat',
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN?.split(',') || ['*'],
     credentials: true,
   },
 })

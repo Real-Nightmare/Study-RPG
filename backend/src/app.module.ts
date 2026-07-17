@@ -10,7 +10,6 @@ import { PgVectorModule } from './modules/pgvector';
 import { QueueModule } from './modules/queue';
 import { StorageModule } from './modules/storage';
 import { AiModule } from './modules/ai';
-import { FirebaseModule } from './modules/firebase';
 import { AuditModule } from './modules/audit';
 import { LlmModule } from './modules/llm';
 
@@ -30,7 +29,6 @@ import { CodeSandboxModule } from './modules/code-sandbox';
 import { LearningPathsModule } from './modules/learning-paths';
 import { AnalyticsModule } from './modules/analytics';
 import { NotificationsModule } from './modules/notifications';
-import { BlogModule } from './modules/blog';
 import { AdminModule } from './modules/admin';
 import { RpgModule } from './modules/rpg/rpg.module';
 
@@ -75,7 +73,6 @@ import { HealthController } from './health.controller';
     QueueModule,
     StorageModule,
     AiModule,
-    FirebaseModule,
     AuditModule,
     LlmModule,
     GatewayModule,
@@ -96,7 +93,6 @@ import { HealthController } from './health.controller';
     LearningPathsModule,
     AnalyticsModule,
     NotificationsModule,
-    BlogModule,
     AdminModule,
     RpgModule,
   ],
