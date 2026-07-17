@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +35,6 @@ const features = [
 
 const navLinks = [
   { nameKey: 'nav.features', href: '/features', hasDropdown: true },
-  { nameKey: 'nav.blog', href: '/blog' },
   { nameKey: 'nav.tutorial', href: '/tutorial' },
   { nameKey: 'nav.about', href: '/about' },
   { nameKey: 'nav.contact', href: '/contact' },
@@ -86,9 +86,9 @@ export function Header() {
         <nav className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img src="/logos/studyield-logo.png" alt="Studyield" className="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
+            <img src="/logos/studyield-logo.png" alt="Study RPG" className="w-12 h-12 object-contain transition-transform group-hover:scale-110" />
             <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-              Studyield
+              Study RPG
             </span>
           </Link>
 
@@ -185,6 +185,7 @@ export function Header() {
           {/* Desktop Auth Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <LanguageSwitcher />
+            <DarkModeToggle />
             {isAuthenticated ? (
               <Link
                 to="/dashboard"
@@ -357,6 +358,7 @@ export function Header() {
                     </Link>
                   ) : (
                     <>
+                      <DarkModeToggle />
                       <Button variant="outline" className="w-full h-12" asChild>
                         <Link to="/login">{t('common.signIn')}</Link>
                       </Button>

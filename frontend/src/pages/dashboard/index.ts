@@ -52,3 +52,11 @@ export { default as NotificationSettingsPage } from './NotificationSettingsPage'
 export { default as AppearanceSettingsPage } from './AppearanceSettingsPage';
 export { default as ChatPage } from './ChatPage';
 export { default as ChatHistoryPage } from './ChatHistoryPage';
+export { default as BattlePage } from './BattlePage';
+export { default as CardsPage } from './CardsPage';
+export { default as AreasPage } from './AreasPage';
+export { default as BattlepassPage } from './BattlepassPage';
+export { default as ShopPage } from './ShopPage';
+export { default as RevisionCentrePage } from './RevisionCentrePage';
+export { default as ProgrammesPage } from './ProgrammesPage';
+export { default as CBTPage } from './CBTPage';

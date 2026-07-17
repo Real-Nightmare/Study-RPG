@@ -14,13 +14,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  googleLogin: (idToken: string) => Promise<void>;
-  appleLogin: (idToken: string, userData?: { name?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (token: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,23 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshUser();
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    // Just register, don't auto-login - user will login manually
-    await authService.register(name, email, password);
-  };
-
-  const googleLogin = async (idToken: string): Promise<void> => {
-    const response = await authService.googleAuth(idToken);
-    tokenStorage.setTokens(response.tokens.accessToken, response.tokens.refreshToken);
-    await refreshUser();
-  };
-
-  const appleLogin = async (idToken: string, userData?: { name?: string }): Promise<void> => {
-    const response = await authService.appleAuth(idToken, userData);
-    tokenStorage.setTokens(response.tokens.accessToken, response.tokens.refreshToken);
-    await refreshUser();
-  };
-
   const logout = async () => {
     try {
       const refreshToken = tokenStorage.getRefreshToken();
@@ -118,14 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const forgotPassword = async (email: string) => {
-    await authService.forgotPassword(email);
-  };
-
-  const resetPassword = async (token: string, password: string) => {
-    await authService.resetPassword(token, password);
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -133,13 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
-        register,
-        googleLogin,
-        appleLogin,
         logout,
         refreshUser,
-        forgotPassword,
-        resetPassword,
       }}
     >
       {children}

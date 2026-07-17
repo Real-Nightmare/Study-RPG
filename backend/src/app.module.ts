@@ -6,13 +6,13 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 // Global Infrastructure Modules
 import { DatabaseModule } from './modules/database';
 import { RedisModule } from './modules/redis';
-import { QdrantModule } from './modules/qdrant';
-import { ClickhouseModule } from './modules/clickhouse';
+import { PgVectorModule } from './modules/pgvector';
 import { QueueModule } from './modules/queue';
 import { StorageModule } from './modules/storage';
 import { AiModule } from './modules/ai';
-import { EmailModule } from './modules/email';
 import { FirebaseModule } from './modules/firebase';
+import { AuditModule } from './modules/audit';
+import { LlmModule } from './modules/llm';
 
 // Feature Modules
 import { AuthModule } from './modules/auth';
@@ -28,10 +28,11 @@ import { TeachBackModule } from './modules/teach-back';
 import { ResearchModule } from './modules/research';
 import { CodeSandboxModule } from './modules/code-sandbox';
 import { LearningPathsModule } from './modules/learning-paths';
-import { SubscriptionModule } from './modules/subscription';
 import { AnalyticsModule } from './modules/analytics';
 import { NotificationsModule } from './modules/notifications';
 import { BlogModule } from './modules/blog';
+import { AdminModule } from './modules/admin';
+import { RpgModule } from './modules/rpg/rpg.module';
 
 // Common
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -70,13 +71,13 @@ import { HealthController } from './health.controller';
     // Global Infrastructure (order matters - database first)
     DatabaseModule,
     RedisModule,
-    QdrantModule,
-    ClickhouseModule,
+    PgVectorModule,
     QueueModule,
     StorageModule,
     AiModule,
-    EmailModule,
     FirebaseModule,
+    AuditModule,
+    LlmModule,
     GatewayModule,
 
     // Feature Modules
@@ -93,10 +94,11 @@ import { HealthController } from './health.controller';
     ResearchModule,
     CodeSandboxModule,
     LearningPathsModule,
-    SubscriptionModule,
     AnalyticsModule,
     NotificationsModule,
     BlogModule,
+    AdminModule,
+    RpgModule,
   ],
   controllers: [HealthController],
   providers: [

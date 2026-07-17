@@ -37,11 +37,6 @@ export const authService = {
     return response.data;
   },
 
-  async register(name: string, email: string, password: string): Promise<AuthResponse> {
-    const response = await api.post(ENDPOINTS.auth.register, { name, email, password });
-    return response.data;
-  },
-
   async logout(refreshToken: string): Promise<void> {
     await api.post(ENDPOINTS.auth.logout, { refreshToken });
   },
@@ -54,26 +49,6 @@ export const authService = {
   async getCurrentUser(): Promise<User> {
     const response = await api.get(ENDPOINTS.auth.me);
     return response.data;
-  },
-
-  // OAuth
-  async googleAuth(idToken: string): Promise<AuthResponse> {
-    const response = await api.post(ENDPOINTS.auth.google, { idToken });
-    return response.data;
-  },
-
-  async appleAuth(idToken: string, userData?: { name?: string }): Promise<AuthResponse> {
-    const response = await api.post(ENDPOINTS.auth.apple, { idToken, userData });
-    return response.data;
-  },
-
-  // Password Reset
-  async forgotPassword(email: string): Promise<void> {
-    await api.post(ENDPOINTS.auth.forgotPassword, { email });
-  },
-
-  async resetPassword(token: string, password: string): Promise<void> {
-    await api.post(ENDPOINTS.auth.resetPassword, { token, password });
   },
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {

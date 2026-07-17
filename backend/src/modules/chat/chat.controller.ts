@@ -24,17 +24,12 @@ import {
 } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common';
-import { SubscriptionService } from '../subscription/subscription.service';
-
 @ApiTags('Chat')
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ChatController {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly subscriptionService: SubscriptionService,
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('conversations')
   @ApiOperation({ summary: 'Create a new conversation' })
@@ -72,7 +67,6 @@ export class ChatController {
     @Param('id') id: string,
     @Body() dto: SendMessageDto,
   ) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'ai_requests');
     return this.chatService.sendMessage(id, user.sub, dto);
   }
 
@@ -87,7 +81,6 @@ export class ChatController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body() dto: SendMessageWithFilesDto,
   ) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'ai_requests');
     return this.chatService.sendMessageWithFiles(id, user.sub, dto, files);
   }
 
@@ -100,7 +93,6 @@ export class ChatController {
     @Body() dto: SendMessageDto,
     @Res() res: Response,
   ) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'ai_requests');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');

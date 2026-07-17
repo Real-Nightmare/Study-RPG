@@ -16,12 +16,7 @@ import {
   DataDeletionPage,
   SitemapPage,
   TutorialPage,
-  BlogPage,
-  BlogPostPage,
   LoginPage,
-  RegisterPage,
-  ForgotPasswordPage,
-  ResetPasswordPage,
 } from '@/pages';
 import { OnboardingPage, PreOnboardingPage } from '@/pages';
 import {
@@ -79,6 +74,14 @@ import {
   AppearanceSettingsPage,
   ChatPage,
   ChatHistoryPage,
+  BattlePage,
+  CardsPage,
+  AreasPage,
+  BattlepassPage,
+  ShopPage,
+  RevisionCentrePage,
+  ProgrammesPage,
+  CBTPage,
 } from '@/pages/dashboard';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { Button } from '@/components/ui/button';
@@ -181,8 +184,7 @@ function App() {
       <Route path="/data-deletion" element={<DataDeletionPage />} />
       <Route path="/sitemap" element={<SitemapPage />} />
       <Route path="/tutorial" element={<TutorialPage />} />
-      <Route path="/blog" element={<BlogPage />} />
-      <Route path="/blog/:slug" element={<BlogPostPage />} />
+      <Route path="/sitemap" element={<SitemapPage />} />
 
       {/* Pre-login onboarding (feature slideshow, no auth needed) */}
       <Route path="/welcome" element={<PreOnboardingPage />} />
@@ -193,30 +195,6 @@ function App() {
         element={
           <GuestRoute>
             <LoginPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <GuestRoute>
-            <RegisterPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <GuestRoute>
-            <ForgotPasswordPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <GuestRoute>
-            <ResetPasswordPage />
           </GuestRoute>
         }
       />
@@ -637,6 +615,71 @@ function App() {
         element={
           <ProtectedRoute>
             <ResearchReportPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* RPG Routes */}
+      <Route
+        path="/dashboard/rpg/battle"
+        element={
+          <ProtectedRoute>
+            <BattlePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/cards"
+        element={
+          <ProtectedRoute>
+            <CardsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/areas"
+        element={
+          <ProtectedRoute>
+            <AreasPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/battlepass"
+        element={
+          <ProtectedRoute>
+            <BattlepassPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/shop"
+        element={
+          <ProtectedRoute>
+            <ShopPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/revision"
+        element={
+          <ProtectedRoute>
+            <RevisionCentrePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/programmes"
+        element={
+          <ProtectedRoute>
+            <ProgrammesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/rpg/cbt"
+        element={
+          <ProtectedRoute>
+            <CBTPage />
           </ProtectedRoute>
         }
       />

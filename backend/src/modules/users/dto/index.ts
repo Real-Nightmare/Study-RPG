@@ -38,7 +38,10 @@ export class UserResponseDto {
   id: string;
 
   @ApiProperty()
-  email: string;
+  email: string | null;
+
+  @ApiProperty({ nullable: true })
+  username: string | null;
 
   @ApiProperty()
   name: string;
@@ -48,9 +51,6 @@ export class UserResponseDto {
 
   @ApiProperty()
   role: string;
-
-  @ApiProperty()
-  emailVerified: boolean;
 
   @ApiProperty({ nullable: true })
   educationLevel: string | null;
@@ -63,12 +63,6 @@ export class UserResponseDto {
 
   @ApiProperty()
   preferences: Record<string, unknown>;
-
-  @ApiProperty()
-  plan: string;
-
-  @ApiPropertyOptional()
-  billingCycle: string | null;
 
   @ApiProperty()
   createdAt: Date;

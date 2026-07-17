@@ -7,14 +7,9 @@ export const ENDPOINTS = {
   // Auth
   auth: {
     login: '/auth/login',
-    register: '/auth/register',
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     me: '/users/me',
-    google: '/auth/google',
-    apple: '/auth/apple',
-    forgotPassword: '/auth/forgot-password',
-    resetPassword: '/auth/reset-password',
     verifyEmail: '/auth/verify-email',
     resendVerification: '/auth/resend-verification',
     changePassword: '/auth/change-password',
@@ -223,18 +218,6 @@ export const ENDPOINTS = {
     deleteAll: '/notifications',
     preferences: '/notifications/preferences',
   },
-  // Blog
-  blog: {
-    list: '/blog',
-    categories: '/blog/categories',
-    get: (slug: string) => `/blog/${slug}`,
-    related: (slug: string) => `/blog/${slug}/related`,
-    rating: (postId: string) => `/blog/${postId}/rating`,
-    rate: (postId: string) => `/blog/${postId}/rating`,
-    comments: (postId: string) => `/blog/${postId}/comments`,
-    addComment: (postId: string) => `/blog/${postId}/comments`,
-    deleteComment: (commentId: string) => `/blog/comments/${commentId}`,
-  },
   // Notes
   notes: {
     list: (studySetId: string) => `/study-sets/${studySetId}/notes`,
@@ -243,5 +226,73 @@ export const ENDPOINTS = {
     update: (id: string) => `/notes/${id}`,
     delete: (id: string) => `/notes/${id}`,
     togglePin: (id: string) => `/notes/${id}/pin`,
+  },
+  // RPG - Study RPG Layer
+  rpg: {
+    // Currency / SLC
+    slc: {
+      wallet: '/rpg/slc/wallet',
+      transactions: '/rpg/slc/transactions',
+      revisionFunds: '/rpg/slc/revision-funds',
+    },
+    // Battle
+    battle: {
+      start: '/rpg/battle/start',
+      playCard: '/rpg/battle/play-card',
+      monsterTurn: '/rpg/battle/monster-turn',
+      end: '/rpg/battle/end',
+      state: (battleId: string) => `/rpg/battle/${battleId}`,
+    },
+    // Cards
+    cards: {
+      all: '/rpg/cards',
+      user: '/rpg/cards/user',
+      buy: '/rpg/cards/buy',
+      equip: '/rpg/cards/equip',
+      marketplace: '/rpg/cards/marketplace',
+    },
+    // Areas / Worlds
+    areas: {
+      worlds: '/rpg/areas/worlds',
+      areas: '/rpg/areas',
+      unlock: (areaId: string) => `/rpg/areas/${areaId}/unlock`,
+      completeSubsection: (areaId: string, subsectionId: string) => `/rpg/areas/${areaId}/subsections/${subsectionId}/complete`,
+    },
+    // Battlepass
+    battlepass: {
+      currentSeason: '/rpg/battlepass/current-season',
+      progress: '/rpg/battlepass/progress',
+      claimReward: (tierId: string) => `/rpg/battlepass/claim/${tierId}`,
+    },
+    // Shops
+    shop: {
+      abilities: '/rpg/shop/abilities',
+      items: '/rpg/shop/items',
+      cosmetics: '/rpg/shop/cosmetics',
+      buyAbility: '/rpg/shop/abilities/buy',
+      buyItem: '/rpg/shop/items/buy',
+      buyCosmetic: '/rpg/shop/cosmetics/buy',
+    },
+    // Revision Centre
+    revisionCentre: {
+      apply: '/rpg/revision-centre/apply',
+      quiz: '/rpg/revision-centre/quiz',
+      submit: '/rpg/revision-centre/submit',
+      results: (sessionId: string) => `/rpg/revision-centre/results/${sessionId}`,
+    },
+    // Programmes
+    programmes: {
+      list: '/rpg/programmes',
+      create: '/rpg/programmes',
+      approve: (id: string) => `/rpg/programmes/${id}/approve`,
+      reject: (id: string) => `/rpg/programmes/${id}/reject`,
+    },
+    // CBT
+    cbt: {
+      upcoming: '/rpg/cbt/upcoming',
+      join: '/rpg/cbt/join',
+      submit: '/rpg/cbt/submit',
+      results: (examId: string) => `/rpg/cbt/results/${examId}`,
+    },
   },
 };

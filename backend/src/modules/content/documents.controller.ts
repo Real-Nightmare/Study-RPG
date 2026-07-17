@@ -28,7 +28,6 @@ import { StorageService } from '../storage/storage.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -40,8 +39,7 @@ const ALLOWED_MIME_TYPES = [
   'image/jpeg',
 ];
 
-const MAX_FILE_SIZE_FREE = 10 * 1024 * 1024; // 10MB
-const MAX_FILE_SIZE_PRO = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 @ApiTags('Documents')
 @Controller('documents')
@@ -51,7 +49,6 @@ export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
     private readonly storageService: StorageService,
-    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Post()
@@ -83,18 +80,10 @@ export class DocumentsController {
       throw new BadRequestException('File type not allowed');
     }
 
-    const isPro = await this.subscriptionService.isPro(user.sub);
-    const maxSize = isPro ? MAX_FILE_SIZE_PRO : MAX_FILE_SIZE_FREE;
+    const maxSize = MAX_FILE_SIZE;
     if (file.size > maxSize) {
-      throw new BadRequestException(
-        isPro
-          ? 'File size exceeds 100MB limit'
-          : 'Free plan allows up to 10MB per file. Upgrade to Pro for 100MB uploads.',
-      );
+      throw new BadRequestException('File size exceeds 100MB limit');
     }
-
-    // Check storage quota
-    await this.subscriptionService.checkStorageQuota(user.sub, file.size);
 
     const { url } = await this.storageService.upload(file.buffer, file.originalname, {
       contentType: file.mimetype,

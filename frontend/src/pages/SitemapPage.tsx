@@ -9,7 +9,6 @@ import {
   Shield,
   HelpCircle,
   LogIn,
-  UserPlus,
   GraduationCap,
   ChevronRight,
   ArrowRight,
@@ -22,7 +21,6 @@ import {
   Layers,
   Settings,
   User,
-  Lock,
   Cookie,
   Trash2,
 } from 'lucide-react';
@@ -63,8 +61,6 @@ export function SitemapPage() {
       color: 'from-violet-500 to-purple-500',
       links: [
         { name: t('sitemapPage.links.signIn'), href: '/login', icon: LogIn, description: t('sitemapPage.links.signInDesc') },
-        { name: t('sitemapPage.links.createAccount'), href: '/register', icon: UserPlus, description: t('sitemapPage.links.createAccountDesc') },
-        { name: t('sitemapPage.links.forgotPassword'), href: '/forgot-password', icon: Lock, description: t('sitemapPage.links.forgotPasswordDesc') },
         { name: t('sitemapPage.links.dashboard'), href: '/dashboard', icon: Layers, description: t('sitemapPage.links.dashboardDesc') },
         { name: t('sitemapPage.links.settings'), href: '/settings', icon: Settings, description: t('sitemapPage.links.settingsDesc') },
       ],
@@ -110,7 +106,7 @@ export function SitemapPage() {
     { name: t('sitemapPage.links.features'), href: '/features', icon: Zap, color: 'bg-violet-500' },
     { name: t('sitemapPage.links.support'), href: '/support', icon: HelpCircle, color: 'bg-amber-500' },
     { name: t('sitemapPage.links.signIn'), href: '/login', icon: LogIn, color: 'bg-rose-500' },
-    { name: t('sitemapPage.links.getStarted'), href: '/register', icon: UserPlus, color: 'bg-cyan-500' },
+    { name: t('sitemapPage.links.getStarted'), href: '/welcome', icon: Zap, color: 'bg-cyan-500' },
   ];
 
   return (

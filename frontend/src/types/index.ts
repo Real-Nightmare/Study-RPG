@@ -408,3 +408,311 @@ export interface UpdateNoteRequest {
   isPinned?: boolean;
   color?: string;
 }
+
+// ==================== RPG TYPES ====================
+
+export type CardRarity = 'Common' | 'Super Rare' | 'Legendary' | 'Mythic';
+export type CardType = 'Attack' | 'Defend' | 'Heal' | 'Buff';
+export type CardElement = 'Fire' | 'Water' | 'Earth' | 'Wind' | 'Light' | 'Dark';
+
+export interface RPGCard {
+  id: string;
+  name: string;
+  description: string;
+  rarity: CardRarity;
+  type: CardType;
+  element: CardElement;
+  power: number;
+  cost: number;
+  abilities: string[];
+  icon?: string;
+  owned: boolean;
+  quantity: number;
+  price?: number;
+  equipped: boolean;
+}
+
+export interface RPGUserCards {
+  cards: RPGCard[];
+  equipped: string[];
+  maxEquipped: number;
+}
+
+export interface RPGWallet {
+  balance: number;
+  currency: string;
+  recentTransactions: RPGTransaction[];
+}
+
+export interface RPGTransaction {
+  id: string;
+  amount: number;
+  type: 'earn' | 'spend';
+  source: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface RPGMonster {
+  id: string;
+  name: string;
+  description: string;
+  hp: number;
+  maxHp: number;
+  sp: number;
+  maxSp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  element: CardElement;
+  weaknesses: CardElement[];
+  resistances: CardElement[];
+  rewards: {
+    slc: number;
+    xp: number;
+    cards?: string[];
+  };
+  imageUrl?: string;
+}
+
+export interface RPGPlayer {
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  sp: number;
+  maxSp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+}
+
+export interface RGBattleState {
+  id: string;
+  status: 'active' | 'victory' | 'defeat' | 'abandoned';
+  player: RPGPlayer;
+  monster: RPGMonster;
+  turn: number;
+  currentTurn: 'player' | 'monster';
+  log: BattleLogEntry[];
+  availableCards: RPGCard[];
+  spRegenPerTurn: number;
+}
+
+export interface BattleLogEntry {
+  id: string;
+  turn: number;
+  actor: 'player' | 'monster';
+  action: string;
+  damage?: number;
+  heal?: number;
+  buff?: string;
+  description: string;
+}
+
+export interface RPGArea {
+  id: string;
+  worldId: string;
+  name: string;
+  description: string;
+  requiredLevel: number;
+  unlocked: boolean;
+  progress: number;
+  subsections: RPGSubsection[];
+  monsterIds: string[];
+  isMiniBoss: boolean;
+  isFinalBoss: boolean;
+  element?: string;
+}
+
+export interface RPGSubsection {
+  id: string;
+  areaId: string;
+  name: string;
+  description: string;
+  completed: boolean;
+  battleMonsterId: string;
+  requiredWins: number;
+  currentWins: number;
+  rewards: {
+    slc: number;
+    xp: number;
+  };
+}
+
+export interface RPGWorld {
+  id: string;
+  name: string;
+  description: string;
+  theme: string;
+  areas: RPGArea[];
+  requiredLevel: number;
+  unlocked: boolean;
+  order: number;
+}
+
+export interface RGBattlepassSeason {
+  id: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  totalTiers: number;
+  finalReward: {
+    type: 'card';
+    cardId: string;
+    cardName: string;
+    rarity: CardRarity;
+  };
+}
+
+export interface RGBattlepassTier {
+  id: string;
+  tierNumber: number;
+  xpRequired: number;
+  rewards: BattlepassReward[];
+  claimed: boolean;
+  unlocked: boolean;
+}
+
+export interface BattlepassReward {
+  id: string;
+  type: 'card' | 'slc' | 'ability' | 'item' | 'cosmetic';
+  name: string;
+  description: string;
+  rarity?: CardRarity;
+  icon?: string;
+}
+
+export interface RGBattlepassProgress {
+  season: RGBattlepassSeason;
+  currentXp: number;
+  currentTier: number;
+  tiers: RGBattlepassTier[];
+}
+
+export interface RPGAbility {
+  id: string;
+  name: string;
+  description: string;
+  type: 'active' | 'passive';
+  element: CardElement;
+  price: number;
+  effect: string;
+  owned: boolean;
+  icon?: string;
+}
+
+export interface RPGItem {
+  id: string;
+  name: string;
+  description: string;
+  type: 'consumable' | 'permanent';
+  element: CardElement;
+  price: number;
+  effect: string;
+  counters: string[];
+  owned: boolean;
+  quantity: number;
+  icon?: string;
+}
+
+export interface RPGCosmetic {
+  id: string;
+  name: string;
+  description: string;
+  type: 'theme' | 'avatar' | 'card_back' | 'profile_border';
+  price: number;
+  previewUrl?: string;
+  owned: boolean;
+  equipped: boolean;
+}
+
+export interface RPGRevisionSession {
+  id: string;
+  topic: string;
+  status: 'applied' | 'active' | 'completed' | 'expired';
+  streak: number;
+  fundBalance: number;
+  questions: RevisionQuestion[];
+  score?: number;
+  passed?: boolean;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface RevisionQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
+}
+
+export interface RPGProgramme {
+  id: string;
+  title: string;
+  problemStatement: string;
+  solutionApproach: string;
+  status: 'pending' | 'approved' | 'rejected';
+  authorId: string;
+  authorName: string;
+  slcFee: number;
+  createdAt: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
+export interface CreateProgrammeRequest {
+  title: string;
+  problemStatement: string;
+  solutionApproach: string;
+}
+
+export interface RGPCBTExam {
+  id: string;
+  subject: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  duration: number;
+  totalMarks: number;
+  questions: CBTQuestion[];
+  status: 'upcoming' | 'active' | 'completed';
+  submitted: boolean;
+  score?: number;
+}
+
+export interface CBTQuestion {
+  id: string;
+  question: string;
+  type: 'multiple_choice' | 'true_false' | 'short_answer';
+  options?: string[];
+  marks: number;
+  correctAnswer?: string;
+  explanation?: string;
+}
+
+export interface CBTAnswer {
+  questionId: string;
+  answer: string;
+}
+
+export interface CBTResult {
+  examId: string;
+  score: number;
+  totalMarks: number;
+  percentage: number;
+  passed: boolean;
+  timeSpent: number;
+  analysis: {
+    strongAreas: string[];
+    weakAreas: string[];
+    recommendations: string[];
+  };
+}

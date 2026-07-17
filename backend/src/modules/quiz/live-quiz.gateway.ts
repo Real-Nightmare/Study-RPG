@@ -9,12 +9,11 @@ import { Socket } from 'socket.io';
 import { BaseGateway } from '../../common/gateways/base.gateway';
 import { LiveQuizService, LiveQuestion } from './live-quiz.service';
 import { QuizService } from './quiz.service';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @WebSocketGateway({
   namespace: 'live-quiz',
   cors: {
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:3010',
       'http://localhost:5189',
     ],
@@ -27,7 +26,6 @@ export class LiveQuizGateway extends BaseGateway implements OnModuleInit {
   constructor(
     private readonly liveQuizService: LiveQuizService,
     private readonly quizService: QuizService,
-    private readonly subscriptionService: SubscriptionService,
   ) {
     super();
   }
@@ -65,16 +63,6 @@ export class LiveQuizGateway extends BaseGateway implements OnModuleInit {
     const user = this.getUserFromSocket(client);
     if (!user) {
       client.emit('error', { message: 'Not authenticated' });
-      return;
-    }
-
-    const isPro = await this.subscriptionService.isPro(user.sub);
-    if (!isPro) {
-      client.emit('error', {
-        message: 'This feature requires a Pro plan',
-        upgrade: true,
-        feature: 'live_quiz',
-      });
       return;
     }
 

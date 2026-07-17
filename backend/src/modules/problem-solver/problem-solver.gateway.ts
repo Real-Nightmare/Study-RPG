@@ -10,12 +10,11 @@ import { Server, Socket } from 'socket.io';
 import { ProblemSolverService, SolveProblemDto } from './problem-solver.service';
 import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @WebSocketGateway({
   namespace: 'problem-solver',
   cors: {
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:3010',
       'http://localhost:5189',
     ],
@@ -30,28 +29,13 @@ export class ProblemSolverGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    private readonly problemSolverService: ProblemSolverService,
-    private readonly subscriptionService: SubscriptionService,
-  ) {}
+  constructor(private readonly problemSolverService: ProblemSolverService) {}
 
   @SubscribeMessage('solve')
   async handleSolve(@MessageBody() data: { sessionId: string }, @ConnectedSocket() client: Socket) {
     const user = client.data.user;
     if (!user) {
       return { event: 'error', data: { message: 'Unauthorized' } };
-    }
-
-    const isPro = await this.subscriptionService.isPro(user.sub);
-    if (!isPro) {
-      return {
-        event: 'error',
-        data: {
-          message: 'This feature requires a Pro plan',
-          upgrade: true,
-          feature: 'problem_solver',
-        },
-      };
     }
 
     try {
@@ -77,18 +61,6 @@ export class ProblemSolverGateway {
     const user = client.data.user;
     if (!user) {
       return { event: 'error', data: { message: 'Unauthorized' } };
-    }
-
-    const isPro = await this.subscriptionService.isPro(user.sub);
-    if (!isPro) {
-      return {
-        event: 'error',
-        data: {
-          message: 'This feature requires a Pro plan',
-          upgrade: true,
-          feature: 'problem_solver',
-        },
-      };
     }
 
     try {

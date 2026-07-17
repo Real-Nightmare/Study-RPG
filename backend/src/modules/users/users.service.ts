@@ -4,14 +4,12 @@ import { DatabaseService } from '../database/database.service';
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
+  username: string | null;
   password: string | null;
   name: string;
   avatarUrl: string | null;
   role: string;
-  googleId: string | null;
-  appleId: string | null;
-  emailVerified: boolean;
   educationLevel: string | null;
   subjects: string[];
   profileCompleted: boolean;
@@ -22,13 +20,12 @@ export interface User {
 }
 
 export interface CreateUserDto {
-  email: string;
+  email?: string;
+  username?: string;
   password?: string;
   name: string;
-  googleId?: string;
-  appleId?: string;
   avatarUrl?: string;
-  emailVerified?: boolean;
+  role?: string;
 }
 
 export interface UpdateUserDto {
@@ -51,18 +48,17 @@ export class UsersService {
     const now = new Date();
 
     const result = await this.db.queryOne<User>(
-      `INSERT INTO users (id, email, password, name, avatar_url, google_id, apple_id, email_verified, preferences, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO users (id, email, username, password, name, avatar_url, role, preferences, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         id,
-        dto.email.toLowerCase(),
+        dto.email ? dto.email.toLowerCase() : null,
+        dto.username ? dto.username.toLowerCase() : null,
         dto.password || null,
         dto.name,
         dto.avatarUrl || null,
-        dto.googleId || null,
-        dto.appleId || null,
-        dto.emailVerified || false,
+        dto.role || 'student',
         JSON.stringify({}),
         now,
         now,
@@ -73,6 +69,13 @@ export class UsersService {
     return this.mapUser(result!);
   }
 
+  async findByUsername(username: string): Promise<User | null> {
+    const result = await this.db.queryOne<User>('SELECT * FROM users WHERE username = $1', [
+      username.toLowerCase(),
+    ]);
+    return result ? this.mapUser(result) : null;
+  }
+
   async findById(id: string): Promise<User | null> {
     const result = await this.db.queryOne<User>('SELECT * FROM users WHERE id = $1', [id]);
     return result ? this.mapUser(result) : null;
@@ -81,20 +84,6 @@ export class UsersService {
   async findByEmail(email: string): Promise<User | null> {
     const result = await this.db.queryOne<User>('SELECT * FROM users WHERE email = $1', [
       email.toLowerCase(),
-    ]);
-    return result ? this.mapUser(result) : null;
-  }
-
-  async findByGoogleId(googleId: string): Promise<User | null> {
-    const result = await this.db.queryOne<User>('SELECT * FROM users WHERE google_id = $1', [
-      googleId,
-    ]);
-    return result ? this.mapUser(result) : null;
-  }
-
-  async findByAppleId(appleId: string): Promise<User | null> {
-    const result = await this.db.queryOne<User>('SELECT * FROM users WHERE apple_id = $1', [
-      appleId,
     ]);
     return result ? this.mapUser(result) : null;
   }
@@ -156,34 +145,17 @@ export class UsersService {
     this.logger.log(`Password updated for user: ${id}`);
   }
 
+  async updateRole(id: string, role: string): Promise<void> {
+    await this.db.query('UPDATE users SET role = $1, updated_at = $2 WHERE id = $3', [
+      role,
+      new Date(),
+      id,
+    ]);
+    this.logger.log(`Role updated for user ${id}: ${role}`);
+  }
+
   async updateLastLogin(id: string): Promise<void> {
     await this.db.query('UPDATE users SET last_login_at = $1 WHERE id = $2', [new Date(), id]);
-  }
-
-  async verifyEmail(id: string): Promise<void> {
-    await this.db.query('UPDATE users SET email_verified = true, updated_at = $1 WHERE id = $2', [
-      new Date(),
-      id,
-    ]);
-    this.logger.log(`Email verified for user: ${id}`);
-  }
-
-  async linkGoogleAccount(id: string, googleId: string): Promise<void> {
-    await this.db.query('UPDATE users SET google_id = $1, updated_at = $2 WHERE id = $3', [
-      googleId,
-      new Date(),
-      id,
-    ]);
-    this.logger.log(`Google account linked for user: ${id}`);
-  }
-
-  async linkAppleAccount(id: string, appleId: string): Promise<void> {
-    await this.db.query('UPDATE users SET apple_id = $1, updated_at = $2 WHERE id = $3', [
-      appleId,
-      new Date(),
-      id,
-    ]);
-    this.logger.log(`Apple account linked for user: ${id}`);
   }
 
   async delete(id: string): Promise<void> {
@@ -358,14 +330,12 @@ export class UsersService {
 
     return {
       id: r.id as string,
-      email: r.email as string,
+      email: (r.email as string) || null,
+      username: (r.username as string) || null,
       password: r.password as string | null,
       name: r.name as string,
       avatarUrl: r.avatar_url as string | null,
-      role: (r.role as string) || 'user',
-      googleId: r.google_id as string | null,
-      appleId: r.apple_id as string | null,
-      emailVerified: r.email_verified as boolean,
+      role: (r.role as string) || 'student',
       educationLevel: r.education_level as string | null,
       subjects: subjects,
       profileCompleted: (r.profile_completed as boolean) || false,

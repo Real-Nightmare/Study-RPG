@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/NotificationBell';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -25,6 +26,13 @@ import {
   Search,
   Crown,
   CreditCard,
+  Swords,
+  Grid3x3,
+  Map,
+  Trophy,
+  Store,
+  BookOpen,
+  ClipboardCheck,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -41,6 +49,14 @@ const sidebarItems = [
   { labelKey: 'nav.learningPaths', icon: Route, href: '/dashboard/learning-paths' },
   { labelKey: 'nav.deepResearch', icon: Search, href: '/dashboard/research' },
   { labelKey: 'nav.analytics', icon: BarChart3, href: '/dashboard/analytics' },
+  { labelKey: 'nav.rpg.battle', icon: Swords, href: '/dashboard/rpg/battle' },
+  { labelKey: 'nav.rpg.cards', icon: Grid3x3, href: '/dashboard/rpg/cards' },
+  { labelKey: 'nav.rpg.areas', icon: Map, href: '/dashboard/rpg/areas' },
+  { labelKey: 'nav.rpg.battlepass', icon: Trophy, href: '/dashboard/rpg/battlepass' },
+  { labelKey: 'nav.rpg.shop', icon: Store, href: '/dashboard/rpg/shop' },
+  { labelKey: 'nav.rpg.revision', icon: BookOpen, href: '/dashboard/rpg/revision' },
+  { labelKey: 'nav.rpg.programmes', icon: Lightbulb, href: '/dashboard/rpg/programmes' },
+  { labelKey: 'nav.rpg.cbt', icon: ClipboardCheck, href: '/dashboard/rpg/cbt' },
   { labelKey: 'nav.notifications', icon: Bell, href: '/dashboard/notifications' },
   { labelKey: 'nav.subscription', icon: Crown, href: '/dashboard/subscription' },
 ];
@@ -78,8 +94,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Logo */}
         <div className="h-16 flex-shrink-0 flex items-center justify-between px-4 border-b border-border">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logos/studyield-logo.png" alt="Studyield" className="w-8 h-8 object-contain" />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 bg-clip-text text-transparent">Studyield</span>
+            <img src="/logos/studyield-logo.png" alt="Study RPG" className="w-8 h-8 object-contain" />
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 bg-clip-text text-transparent">Study RPG</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -162,6 +178,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Language switcher */}
             <LanguageSwitcher />
+
+            {/* Dark mode toggle */}
+            <DarkModeToggle />
 
             {/* Notification bell */}
             <NotificationBell />

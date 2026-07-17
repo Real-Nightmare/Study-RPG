@@ -17,6 +17,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { DatabaseService } from '../database/database.service';
+import { LlmService } from '../llm/llm.service';
 import { v4 as uuidv4 } from 'uuid';
 
 // Default models
@@ -66,6 +67,7 @@ export class AiService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly db: DatabaseService,
+    private readonly llmService: LlmService,
   ) {}
 
   async onModuleInit() {
@@ -173,8 +175,25 @@ export class AiService implements OnModuleInit {
         return this.completeFallback(messages, options);
       }
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new BadRequestException(`AI completion failed: ${errorMessage}`);
+      // Final fallback: try the configured LLM provider pool (callWithFallback)
+      try {
+        this.logger.warn('Attempting fallback to managed LLM providers...');
+        const prompt = messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+        const content = await this.llmService.callWithFallback(prompt, {
+          temperature: options.temperature,
+          maxTokens: options.maxTokens,
+          ...(options.responseFormat && { responseFormat: options.responseFormat }),
+        });
+        return {
+          content,
+          model: 'managed-provider-fallback',
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+      } catch (fallbackError) {
+        const errorMessage =
+          fallbackError instanceof Error ? fallbackError.message : 'Unknown error';
+        throw new BadRequestException(`AI completion failed: ${errorMessage}`);
+      }
     }
   }
 

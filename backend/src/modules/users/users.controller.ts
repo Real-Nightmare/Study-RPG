@@ -17,7 +17,6 @@ import { UsersService, UpdateUserDto } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { UserResponseDto, UserStatsDto, UpdateProfileDto } from './dto';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @ApiTags('Users')
 @Controller('users')
@@ -26,10 +25,7 @@ import { SubscriptionService } from '../subscription/subscription.service';
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
 
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly subscriptionService: SubscriptionService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -40,46 +36,17 @@ export class UsersController {
       throw new NotFoundException('User not found');
     }
 
-    // Fetch full subscription details
-    let plan = 'free';
-    let subscriptionData = null;
-    try {
-      const subscription = await this.subscriptionService.getOrCreateSubscription(
-        user.sub,
-        profile.email,
-      );
-      plan = subscription?.plan || 'free';
-
-      // Include full subscription object in response
-      subscriptionData = {
-        plan: subscription.plan,
-        status: subscription.status,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-      };
-    } catch (err) {
-      this.logger.warn(
-        `Failed to fetch subscription for user ${user.sub}: ${(err as Error).message}`,
-      );
-    }
-
-    // Normalize: monthly/yearly → 'pro' for frontend, keep raw for billing
-    const planDisplay = plan === 'monthly' || plan === 'yearly' ? 'pro' : 'free';
     return {
       id: profile.id,
       email: profile.email,
+      username: profile.username,
       name: profile.name,
       avatarUrl: profile.avatarUrl,
       role: profile.role,
-      emailVerified: profile.emailVerified,
       educationLevel: profile.educationLevel,
       subjects: profile.subjects,
       profileCompleted: profile.profileCompleted,
       preferences: profile.preferences,
-      plan: planDisplay,
-      billingCycle: plan === 'free' ? null : plan,
-      subscription: subscriptionData,
       createdAt: profile.createdAt,
     };
   }
@@ -98,45 +65,17 @@ export class UsersController {
 
     const profile = await this.usersService.update(user.sub, updateDto);
 
-    // Fetch full subscription details
-    let plan = 'free';
-    let subscriptionData = null;
-    try {
-      const subscription = await this.subscriptionService.getOrCreateSubscription(
-        user.sub,
-        profile.email,
-      );
-      plan = subscription?.plan || 'free';
-
-      // Include full subscription object in response
-      subscriptionData = {
-        plan: subscription.plan,
-        status: subscription.status,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-      };
-    } catch (err) {
-      this.logger.warn(
-        `Failed to fetch subscription for user ${user.sub}: ${(err as Error).message}`,
-      );
-    }
-
-    const planDisplay = plan === 'monthly' || plan === 'yearly' ? 'pro' : 'free';
     return {
       id: profile.id,
       email: profile.email,
+      username: profile.username,
       name: profile.name,
       avatarUrl: profile.avatarUrl,
       role: profile.role,
-      emailVerified: profile.emailVerified,
       educationLevel: profile.educationLevel,
       subjects: profile.subjects,
       profileCompleted: profile.profileCompleted,
       preferences: profile.preferences,
-      plan: planDisplay,
-      billingCycle: plan === 'free' ? null : plan,
-      subscription: subscriptionData,
       createdAt: profile.createdAt,
     };
   }

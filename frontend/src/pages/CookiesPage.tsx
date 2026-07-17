@@ -98,9 +98,8 @@ export function CookiesPage() {
       ...cookie,
       privacy: [
         'https://policies.google.com/privacy',
-        'https://stripe.com/privacy',
         'https://openai.com/privacy',
-      ][index],
+      ][index % 2],
     })
   );
 

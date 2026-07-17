@@ -19,7 +19,6 @@ import { CreateNoteDto } from './dto/note.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload, Public } from '../../common';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @ApiTags('Study Sets')
 @Controller('study-sets')
@@ -30,14 +29,12 @@ export class StudySetsController {
     private readonly studySetsService: StudySetsService,
     private readonly flashcardsService: FlashcardsService,
     private readonly notesService: NotesService,
-    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new study set' })
   @ApiResponse({ status: 201, description: 'Study set created' })
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateStudySetDto) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'study_sets');
     return this.studySetsService.create(user.sub, dto);
   }
 
@@ -98,7 +95,6 @@ export class StudySetsController {
   @ApiOperation({ summary: 'Duplicate study set' })
   @ApiResponse({ status: 201, description: 'Study set duplicated' })
   async duplicate(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'study_sets');
     return this.studySetsService.duplicate(id, user.sub);
   }
 
@@ -131,7 +127,6 @@ export class StudySetsController {
     },
   ) {
     await this.studySetsService.findByIdWithAccess(studySetId, user.sub);
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'flashcards');
     return this.flashcardsService.create(user.sub, {
       studySetId,
       ...body,
@@ -156,11 +151,6 @@ export class StudySetsController {
     },
   ) {
     await this.studySetsService.findByIdWithAccess(studySetId, user.sub);
-    await this.subscriptionService.checkAndIncrementUsage(
-      user.sub,
-      'flashcards',
-      body.flashcards.length,
-    );
     return this.flashcardsService.createBulk(user.sub, studySetId, body.flashcards);
   }
 

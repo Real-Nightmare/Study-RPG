@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../database/database.service';
-import { QdrantService } from '../qdrant/qdrant.service';
+import { PgVectorService } from '../pgvector/pgvector.service';
 import { EmbeddingService } from '../ai/embedding.service';
 import { QueueService } from '../queue/queue.service';
 import { ChunkingService } from './chunking.service';
@@ -50,7 +50,7 @@ export class KnowledgeBaseService {
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly qdrantService: QdrantService,
+    private readonly pgVectorService: PgVectorService,
     private readonly embeddingService: EmbeddingService,
     private readonly queueService: QueueService,
     private readonly chunkingService: ChunkingService,
@@ -60,13 +60,9 @@ export class KnowledgeBaseService {
   }
 
   async onModuleInit() {
-    // Wait for Qdrant to initialize (non-blocking if it fails)
-    const qdrantReady = await this.qdrantService.waitForInit(5000);
-    if (qdrantReady) {
-      await this.qdrantService.createCollection(this.collectionName, this.vectorDimension);
-    } else {
-      this.logger.warn('Qdrant not available - knowledge base vector features will be limited');
-    }
+    // pgvector stores embeddings directly in the kb_chunks table; no external
+    // collection provisioning is required.
+    await this.pgVectorService.createCollection(this.collectionName);
   }
 
   async create(userId: string, dto: CreateKnowledgeBaseDto): Promise<KnowledgeBase> {
@@ -178,17 +174,14 @@ export class KnowledgeBaseService {
         chunks.map((c) => c.content),
       );
 
-      const points = chunkIds.map((id, index) => ({
-        id,
-        vector: embeddings[index].vector,
-        payload: {
-          knowledgeBaseId,
-          documentId,
-          chunkIndex: chunks[index].index,
-        },
-      }));
-
-      await this.qdrantService.upsertBatch(this.collectionName, points);
+      await this.db.transaction(async (client) => {
+        for (let index = 0; index < chunkIds.length; index++) {
+          await client.query(`UPDATE kb_chunks SET embedding = $1 WHERE id = $2`, [
+            `[${embeddings[index].vector.join(',')}]`,
+            chunkIds[index],
+          ]);
+        }
+      });
 
       await this.updateStatus(knowledgeBaseId, 'active');
       this.logger.log(`Document ${documentId} processed: ${chunks.length} chunks`);
@@ -235,17 +228,14 @@ export class KnowledgeBaseService {
 
     const embeddings = await this.embeddingService.embedWithChunking(chunks.map((c) => c.content));
 
-    const points = chunkIds.map((id, index) => ({
-      id,
-      vector: embeddings[index].vector,
-      payload: {
-        knowledgeBaseId,
-        chunkIndex: chunks[index].index,
-        ...metadata,
-      },
-    }));
-
-    await this.qdrantService.upsertBatch(this.collectionName, points);
+    await this.db.transaction(async (client) => {
+      for (let index = 0; index < chunkIds.length; index++) {
+        await client.query(`UPDATE kb_chunks SET embedding = $1 WHERE id = $2`, [
+          `[${embeddings[index].vector.join(',')}]`,
+          chunkIds[index],
+        ]);
+      }
+    });
 
     this.logger.log(`Added ${chunks.length} text chunks to KB ${knowledgeBaseId}`);
     return chunks.length;
@@ -261,7 +251,7 @@ export class KnowledgeBaseService {
 
     const queryEmbedding = await this.embeddingService.embed(query);
 
-    const results = await this.qdrantService.searchWithPayloadFilter(
+    const results = await this.pgVectorService.searchWithPayloadFilter(
       this.collectionName,
       queryEmbedding.vector,
       limit,
@@ -306,7 +296,7 @@ export class KnowledgeBaseService {
     const allResults: SearchResult[] = [];
 
     for (const kbId of knowledgeBaseIds) {
-      const results = await this.qdrantService.searchWithPayloadFilter(
+      const results = await this.pgVectorService.searchWithPayloadFilter(
         this.collectionName,
         queryEmbedding.vector,
         limit,
@@ -341,7 +331,7 @@ export class KnowledgeBaseService {
   async delete(id: string, userId: string): Promise<void> {
     await this.findByIdWithAccess(id, userId);
 
-    await this.qdrantService.deleteByFilter(this.collectionName, {
+    await this.pgVectorService.deleteByFilter(this.collectionName, {
       must: [{ key: 'knowledgeBaseId', match: { value: id } }],
     });
 

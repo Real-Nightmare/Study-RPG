@@ -18,7 +18,6 @@ import {
   Settings,
   ArrowLeft,
   Mail,
-  Smartphone,
   Monitor,
   CalendarClock,
   Newspaper,
@@ -236,13 +235,6 @@ export function NotificationsPage() {
                     description={t('notifications.channels.emailDesc')}
                     checked={preferences?.email ?? true}
                     onChange={(v) => handlePreferenceChange('email', v)}
-                  />
-                  <PreferenceToggle
-                    icon={Smartphone}
-                    label={t('notifications.channels.push')}
-                    description={t('notifications.channels.pushDesc')}
-                    checked={preferences?.push ?? true}
-                    onChange={(v) => handlePreferenceChange('push', v)}
                   />
                 </div>
               </div>

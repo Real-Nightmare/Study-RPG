@@ -16,23 +16,18 @@ import { FlashcardsService } from './flashcards.service';
 import { CreateFlashcardDto, UpdateFlashcardDto, ReviewFlashcardDto } from './dto/flashcard.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @ApiTags('Flashcards')
 @Controller('flashcards')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class FlashcardsController {
-  constructor(
-    private readonly flashcardsService: FlashcardsService,
-    private readonly subscriptionService: SubscriptionService,
-  ) {}
+  constructor(private readonly flashcardsService: FlashcardsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new flashcard' })
   @ApiResponse({ status: 201, description: 'Flashcard created' })
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateFlashcardDto) {
-    await this.subscriptionService.checkAndIncrementUsage(user.sub, 'flashcards');
     return this.flashcardsService.create(user.sub, dto);
   }
 
@@ -47,11 +42,6 @@ export class FlashcardsController {
       cards: Array<{ front: string; back: string; notes?: string; tags?: string[] }>;
     },
   ) {
-    await this.subscriptionService.checkAndIncrementUsage(
-      user.sub,
-      'flashcards',
-      body.cards.length,
-    );
     return this.flashcardsService.createBulk(user.sub, body.studySetId, body.cards);
   }
 

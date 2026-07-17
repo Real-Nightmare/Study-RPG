@@ -14,9 +14,6 @@ import { QuizService, CreateQuizDto, GenerateQuizDto, SubmitAttemptDto } from '.
 import { LiveQuizService } from './live-quiz.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common';
-import { SubscriptionService } from '../subscription/subscription.service';
-
-const FREE_QUIZ_TYPES = ['multiple_choice', 'true_false'];
 
 @ApiTags('Quiz')
 @Controller('quizzes')
@@ -26,7 +23,6 @@ export class QuizController {
   constructor(
     private readonly quizService: QuizService,
     private readonly liveQuizService: LiveQuizService,
-    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Post()
@@ -40,16 +36,6 @@ export class QuizController {
   @ApiOperation({ summary: 'Generate quiz with AI' })
   @ApiResponse({ status: 201, description: 'Quiz generated' })
   async generate(@CurrentUser() user: JwtPayload, @Body() dto: GenerateQuizDto) {
-    const isPro = await this.subscriptionService.isPro(user.sub);
-    if (!isPro && dto.questionTypes) {
-      // Free users can only use basic quiz types
-      dto.questionTypes = dto.questionTypes.filter((t) =>
-        FREE_QUIZ_TYPES.includes(t),
-      ) as GenerateQuizDto['questionTypes'];
-      if (dto.questionTypes!.length === 0) {
-        dto.questionTypes = ['multiple_choice', 'true_false'];
-      }
-    }
     return this.quizService.generate(user.sub, dto);
   }
 

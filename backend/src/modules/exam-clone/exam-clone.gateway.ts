@@ -11,7 +11,6 @@ import { Server, Socket } from 'socket.io';
 import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { DatabaseService } from '../database/database.service';
-import { SubscriptionService } from '../subscription/subscription.service';
 import { v4 as uuidv4 } from 'uuid';
 
 interface SessionParticipant {
@@ -27,7 +26,7 @@ interface SessionParticipant {
 @WebSocketGateway({
   namespace: 'exam-clone',
   cors: {
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:3010',
       'http://localhost:5189',
     ],
@@ -40,10 +39,7 @@ export class ExamCloneGateway implements OnGatewayDisconnect {
   private readonly logger = new Logger(ExamCloneGateway.name);
   private sessionParticipants = new Map<string, Map<string, SessionParticipant>>();
 
-  constructor(
-    private readonly db: DatabaseService,
-    private readonly subscriptionService: SubscriptionService,
-  ) {}
+  constructor(private readonly db: DatabaseService) {}
 
   @WebSocketServer()
   server: Server;
@@ -108,16 +104,6 @@ export class ExamCloneGateway implements OnGatewayDisconnect {
     const hostNickname = data.nickname || userName;
     if (!userId) {
       client.emit('error', { message: 'Unauthorized' });
-      return;
-    }
-
-    const isPro = await this.subscriptionService.isPro(userId);
-    if (!isPro) {
-      client.emit('error', {
-        message: 'This feature requires a Pro plan',
-        upgrade: true,
-        feature: 'exam_clone',
-      });
       return;
     }
 

@@ -26,10 +26,13 @@ import {
   BarChart3,
   Calendar,
   Gamepad2,
+  Coins,
+  Swords,
 } from 'lucide-react';
 import type { StudySet } from '@/types';
 import api from '@/services/api';
 import { ENDPOINTS } from '@/config/api';
+import { getWallet, getUserProgress } from '@/services/rpg';
 
 interface UserStats {
   studySetsCount: number;
@@ -179,12 +182,15 @@ export function DashboardHomePage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [dueCards, setDueCards] = useState<DueCardsInfo | null>(null);
   const [lottieData, setLottieData] = useState<object | null>(null);
+  const [rpgWallet, setRpgWallet] = useState<{ balance: number } | null>(null);
+  const [battlepassProgress, setBattlepassProgress] = useState<{ currentTier: number; totalTiers: number } | null>(null);
 
   useEffect(() => {
     fetchStudySets({ limit: 5 });
     fetchUserStats();
     fetchDueCards();
     fetchGamification();
+    fetchRpgData();
     // Fetch Lottie animation
     fetch('https://assets10.lottiefiles.com/packages/lf20_DMgKk1.json')
       .then(res => res.json())
@@ -192,6 +198,19 @@ export function DashboardHomePage() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchStudySets]);
+
+  const fetchRpgData = async () => {
+    try {
+      const [wallet, progress] = await Promise.all([
+        getWallet(),
+        getUserProgress(),
+      ]);
+      setRpgWallet({ balance: wallet.balance });
+      setBattlepassProgress({ currentTier: progress.currentTier, totalTiers: progress.season.totalTiers });
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchUserStats = async () => {
     try {
@@ -339,6 +358,49 @@ export function DashboardHomePage() {
             delay={0.25}
           />
         </div>
+
+        {/* RPG Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Swords className="w-5 h-5 text-red-500" />
+            Study RPG
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon={Coins}
+              value={rpgWallet?.balance ?? '--'}
+              label="SLC Balance"
+              color="bg-yellow-500/10 text-yellow-500"
+              delay={0.05}
+            />
+            <StatCard
+              icon={Trophy}
+              value={battlepassProgress ? `Tier ${battlepassProgress.currentTier}` : '--'}
+              label="Battlepass"
+              color="bg-purple-500/10 text-purple-500"
+              delay={0.1}
+            />
+            <StatCard
+              icon={Zap}
+              value={stats?.streakDays ?? 0}
+              label="Active Streak"
+              color="bg-green-500/10 text-green-500"
+              delay={0.15}
+            />
+            <StatCard
+              icon={Target}
+              value={stats?.streakDays ?? 0}
+              label="Days Streak"
+              color="bg-blue-500/10 text-blue-500"
+              delay={0.2}
+            />
+          </div>
+        </motion.div>
 
         {/* Quick actions */}
         <motion.div

@@ -4,14 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
+import { AuthService } from './modules/auth/auth.service';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule, {
-    rawBody: true, // Required for Stripe webhooks
-  });
+  const app = await NestFactory.create(AppModule);
 
   // Increase payload size limit to 50MB
   app.use(bodyParser.json({ limit: '50mb' }));
@@ -23,21 +22,18 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
 
-  // CORS — reflect request origin for dev flexibility
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.use((req: any, res: any, next: any) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header(
-      'Access-Control-Allow-Headers',
-      'Origin,X-Requested-With,Content-Type,Accept,Authorization',
-    );
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-    next();
+  // CORS — allow the configured Cloudflare Pages origin (and any extra comma-separated origins)
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+  const allowedOrigins = corsOrigin
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: allowedOrigins.length ? allowedOrigins : '*',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    credentials: true,
+    maxAge: 86400,
   });
 
   // Validation Pipe
@@ -77,9 +73,11 @@ async function bootstrap() {
     .addTag('Research', 'Deep research mode')
     .addTag('Code Sandbox', 'Python code execution')
     .addTag('Learning Paths', 'AI-generated study routes')
-    .addTag('Subscription', 'Stripe billing')
+    .addTag('Admin', 'Admin/teacher management')
+    .addTag('LLM Providers', 'LLM provider management')
     .addTag('Analytics', 'Usage analytics')
     .addTag('Notifications', 'Notification management')
+    .addTag('RPG', 'Study RPG system (SLC, Battle, Cards, Areas, Battlepass, Shops)')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -88,6 +86,14 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
+
+  // Seed the default admin account if it does not already exist
+  try {
+    const authService = app.get(AuthService);
+    await authService.seedAdmin();
+  } catch (error) {
+    logger.error('Failed to seed admin account', (error as Error).message);
+  }
 
   // Start server
   const port = configService.get<number>('PORT', 3010);

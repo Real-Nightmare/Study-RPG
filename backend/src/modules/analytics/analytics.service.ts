@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { ClickhouseService } from '../clickhouse/clickhouse.service';
 
 export interface UserAnalytics {
   totalStudyTime: number;
@@ -32,17 +31,15 @@ export interface PerformanceMetrics {
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(
-    private readonly db: DatabaseService,
-    private readonly clickhouse: ClickhouseService,
-  ) {}
+  constructor(private readonly db: DatabaseService) {}
 
   async trackEvent(
     userId: string,
     eventType: string,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    await this.clickhouse.trackEvent({ eventType, userId, metadata });
+    // ClickHouse analytics backend removed; events are no longer persisted.
+    this.logger.debug(`Analytics event ${eventType} for user ${userId}`);
   }
 
   async getUserAnalytics(userId: string): Promise<UserAnalytics> {
@@ -68,12 +65,8 @@ export class AnalyticsService {
         ),
       ]);
 
-      let activity: Array<{ date: string; count: number }> = [];
-      try {
-        activity = await this.clickhouse.getUserActivity(userId, 30);
-      } catch (e) {
-        this.logger.warn(`ClickHouse unavailable: ${e.message}`);
-      }
+      const activity: Array<{ date: string; count: number }> = [];
+      // ClickHouse analytics backend removed; study activity falls back to empty.
       const streak = this.calculateStreak(activity);
 
       return {
@@ -102,12 +95,8 @@ export class AnalyticsService {
   }
 
   async getStudyActivity(userId: string, days = 30): Promise<StudyActivity[]> {
-    let activity: Array<{ date: string; count: number }> = [];
-    try {
-      activity = await this.clickhouse.getUserActivity(userId, days);
-    } catch (e) {
-      this.logger.warn(`ClickHouse unavailable for study activity: ${e.message}`);
-    }
+    // ClickHouse analytics backend removed; study activity falls back to empty.
+    const activity: Array<{ date: string; count: number }> = [];
 
     return activity.map((a) => ({
       date: a.date,

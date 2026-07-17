@@ -7,14 +7,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE,
+    email VARCHAR(255) UNIQUE,
     password VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
-    role VARCHAR(50) DEFAULT 'user',
-    google_id VARCHAR(255) UNIQUE,
-    apple_id VARCHAR(255) UNIQUE,
-    email_verified BOOLEAN DEFAULT FALSE,
+    role VARCHAR(50) DEFAULT 'student',
     preferences JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -22,8 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_google_id ON users(google_id);
-CREATE INDEX idx_users_apple_id ON users(apple_id);
+CREATE INDEX idx_users_username ON users(username);
 
 -- Study Sets table
 CREATE TABLE IF NOT EXISTS study_sets (
