@@ -15,7 +15,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 | Cache | Redis | MonkeysCloud (included) | Upstash Redis (free tier) |
 | Real-time | Socket.io | MonkeysCloud | Render (paid only — see note) |
 | Auth | JWT (username + password) | MonkeysCloud | — |
-| AI/LLM | Multi-provider (OpenRouter, Groq, Together AI, NAVY AI) | Called from NestJS backend | — |
+| AI/LLM | Multi-provider (OpenRouter, Groq, Together AI, NAVY AI, Custom OpenAI-compatible) | Called from NestJS backend | — |
 
 ---
 
@@ -124,9 +124,10 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 ### 3. Backend AI Feature Simplification (remove Qdrant, add multi-provider LLM)
 - Remove Qdrant module and all vector embedding logic
 - Add multi-provider LLM support with automatic fallback:
-  - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI
+  - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI, Custom OpenAI-compatible
   - Admin can add/remove/reorder providers at runtime via admin interface
-  - Providers stored in DB: API key, base URL, model name, priority order
+  - Providers stored in DB: name, provider type (openrouter/groq/together/navy/custom_openai), API key, base URL, model name, priority order
+  - Custom OpenAI-compatible provider allows admin to enter any OpenAI-compatible endpoint (e.g., local LLM, Ollama, LM Studio, vLLM, Together AI, Fireworks)
   - Backend tries providers in sequence if one fails (rate limit, outage, quota exhausted)
   - All AI features use this fallback chain: Mission assessment, Revision Centre quiz generation, CBT generation, Event Mission generation, Programme evaluation
 - Simplify AI Chat: direct LLM call via fallback chain, no document retrieval
@@ -161,14 +162,9 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - `DATABASE_URL` — MonkeysCloud PostgreSQL connection string
   - `REDIS_URL` — MonkeysCloud Redis connection string
   - `JWT_SECRET` — generate new secret
-  - `OPENROUTER_API_KEY` — primary LLM API key
-  - `GROQ_API_KEY` — Groq fallback provider
-  - `TOGETHER_API_KEY` — Together AI fallback provider
-  - `NAVY_API_KEY` — NAVY AI fallback provider
-  - `NAVY_API_URL` — NAVY AI base URL
   - `CORS_ORIGIN` — Cloudflare Pages domain
   - `ADMIN_DEFAULT_PASSWORD` — password for pre-seeded Nightmare account
-- **LLM Provider Management**: Admin-only interface to add/remove/reorder LLM providers at runtime. Providers stored in DB with API key, base URL, model name, and priority order. Backend fallback chain reads from DB.
+- **LLM providers are DB-managed**: Admin adds providers via admin interface (no env vars needed for individual providers). Primary provider can be set as default via env var `LLM_PRIMARY_PROVIDER` for bootstrapping.
 - Update CORS to allow Cloudflare Pages origin
 - Enable WebSocket support in NestJS gateway config
 - **Fallback**: If MonkeysCloud has issues, deploy to Render (free tier, sleeps after 15 min). Same Dockerfile, just change platform. Database stays on MonkeysCloud or switches to Render free Postgres.
