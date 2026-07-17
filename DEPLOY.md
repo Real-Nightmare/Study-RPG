@@ -39,11 +39,12 @@ psql YOUR_DATABASE_URL < database/seed/seed_all.sql
 
 1. Go to [monkeys.cloud](https://monkeys.cloud) → Sign up (free, no credit card)
 2. Click **"New Project"** → Name: `study-rpg-backend`
-3. Select **Next.js** as stack
+3. Select **NestJS** as stack (or Node.js if NestJS isn't listed)
 4. Connect your GitHub repo OR upload the `backend/` folder
 5. Go to **Settings → Environment Variables** and add:
    ```
    DATABASE_URL=<your-neon-connection-string>
+   REDIS_URL=<optional-upstash-redis-url>
    JWT_SECRET=<random-string-like-abc123xyz>
    CORS_ORIGIN=<your-cloudflare-pages-url>
    OPENROUTER_API_KEY=<your-openrouter-key>
@@ -144,7 +145,7 @@ npm run dev
 ```bash
 cd backend
 npm install
-npm run dev
+npm run start:dev
 # → http://localhost:3000
 ```
 

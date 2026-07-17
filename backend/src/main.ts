@@ -18,8 +18,8 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // API prefix
-  const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
+  // API prefix — empty means routes like /auth/login, /users/me, etc.
+  const apiPrefix = configService.get<string>('API_PREFIX', '');
   app.setGlobalPrefix(apiPrefix);
 
   // CORS — allow the configured Cloudflare Pages origin (and any extra comma-separated origins)

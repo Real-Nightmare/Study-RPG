@@ -5,13 +5,13 @@ A CBSE-aligned study platform with RPG mechanics, Block Tales-inspired battles, 
 ## Architecture
 
 ```
-Frontend (Cloudflare Pages) → Backend (MonkeysCloud Next.js) → Database (Neon PostgreSQL + pgvector)
+Frontend (Cloudflare Pages) → Backend (MonkeysCloud NestJS) → Database (Neon PostgreSQL + pgvector)
 ```
 
 | Layer | Platform | Stack | Purpose |
 |-------|----------|-------|---------|
 | Frontend | Cloudflare Pages | React 19 + Vite | Static SPA + Pages Functions API proxy |
-| Backend | MonkeysCloud | Next.js 14+ | API routes, WebSocket, AI/LLM, RPG logic |
+| Backend | MonkeysCloud | NestJS 10 | REST API, WebSocket, AI/LLM, RPG logic |
 | Database | Neon | PostgreSQL + pgvector | Data storage, vector search |
 
 ## Folder Structure
@@ -33,23 +33,17 @@ Frontend (Cloudflare Pages) → Backend (MonkeysCloud Next.js) → Database (Neo
 │   ├── vite.config.ts
 │   └── .env.example
 │
-├── backend/           # Next.js app → deploy to MonkeysCloud
-│   ├── app/
-│   │   ├── api/                 # Next.js API routes
-│   │   │   ├── auth/
-│   │   │   ├── rpg/
-│   │   │   ├── chat/
-│   │   │   ├── study-sets/
-│   │   │   └── ...
-│   │   └── layout.tsx
-│   ├── lib/
-│   │   ├── db.ts                # PostgreSQL connection
-│   │   ├── auth.ts              # JWT utilities
-│   │   ├── llm.ts               # Multi-provider LLM fallback
-│   │   └── socket.ts            # Socket.io server
+├── backend/           # NestJS app → deploy to MonkeysCloud
+│   ├── src/
+│   │   ├── modules/              # Feature modules (auth, rpg, chat, etc.)
+│   │   ├── common/               # Guards, decorators, filters, gateways
+│   │   ├── types/                # TypeScript types
+│   │   └── main.ts               # App bootstrap
 │   ├── migrations/              # Database migrations
+│   ├── scripts/                 # Seed/admin scripts
+│   ├── Dockerfile
 │   ├── package.json
-│   ├── next.config.js
+│   ├── nest-cli.json
 │   └── .env.example
 │
 ├── database/          # SQL migrations + seed data
@@ -68,6 +62,7 @@ Frontend (Cloudflare Pages) → Backend (MonkeysCloud Next.js) → Database (Neo
 │       ├── seed_admin.sql
 │       └── seed_game_content.sql
 │
+├── DEPLOY.md          # Step-by-step deployment guide
 └── README.md          # This file
 ```
 
@@ -198,10 +193,9 @@ ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
 - Lucide icons
 
 ### Backend
-- Next.js 14+ (App Router)
-- Next.js API Routes
-- Socket.io (WebSocket)
-- PostgreSQL + pgvector
+- NestJS 10 (API routes, WebSocket gateways, modules)
+- Socket.io (real-time features)
+- PostgreSQL + pgvector (Neon)
 - Multi-provider LLM (OpenRouter, Groq, Together, NAVY, Custom OpenAI)
 
 ### Database

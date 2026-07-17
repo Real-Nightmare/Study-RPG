@@ -3,10 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Load environment variables only in non-Docker environments
-// In Docker, environment variables are already set via docker-compose
 if (process.env.NODE_ENV !== 'production') {
   try {
-    // Try to load dotenv if available (for local development)
     const dotenv = require('dotenv');
     const envPath = fs.existsSync(path.join(__dirname, '..', '.env.local'))
       ? path.join(__dirname, '..', '.env.local')
@@ -18,18 +16,23 @@ if (process.env.NODE_ENV !== 'production') {
       dotenv.config({ path: envPath });
     }
   } catch (err) {
-    // dotenv not available (production build), use existing env vars
     console.log('Using environment variables from system');
   }
 }
 
-const pool = new Pool({
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432'),
-  user: process.env.DATABASE_USER || 'studyield',
-  password: process.env.DATABASE_PASSWORD || '',
-  database: process.env.DATABASE_NAME || 'studyield',
-});
+let pool;
+
+if (process.env.DATABASE_URL) {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+} else {
+  pool = new Pool({
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || '5432'),
+    user: process.env.DATABASE_USER || 'studyield',
+    password: process.env.DATABASE_PASSWORD || '',
+    database: process.env.DATABASE_NAME || 'studyield',
+  });
+}
 
 async function migrate() {
   const client = await pool.connect();
