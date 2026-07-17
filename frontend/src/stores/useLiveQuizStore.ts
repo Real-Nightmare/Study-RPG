@@ -119,8 +119,7 @@ export const useLiveQuizStore = create<LiveQuizState>((set, get) => {
       const existing = get().socket;
       if (existing?.connected) return;
 
-      const url = new URL(API_CONFIG.baseURL);
-      const wsUrl = url.origin + '/live-quiz';
+      const wsUrl = WS_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3010');
       const token = localStorage.getItem('accessToken');
 
       console.log('[LiveQuiz] Connecting to:', wsUrl);

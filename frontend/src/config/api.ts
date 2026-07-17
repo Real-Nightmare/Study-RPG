@@ -1,10 +1,12 @@
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3010',
+  baseURL: '/api',
   timeout: 30000,
 };
 
-if (!import.meta.env.VITE_API_URL && typeof window !== 'undefined') {
-  console.warn('[Study RPG] VITE_API_URL is not set. API calls will fail in production.');
+export const WS_URL = import.meta.env.VITE_WS_URL || '';
+
+if (!WS_URL && typeof window !== 'undefined') {
+  console.warn('[Study RPG] VITE_WS_URL is not set. WebSocket features will fail in production.');
 }
 
 export const ENDPOINTS = {
