@@ -15,7 +15,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 | Cache | Redis | MonkeysCloud (included) | Upstash Redis (free tier) |
 | Real-time | Socket.io | MonkeysCloud | Render (paid only — see note) |
 | Auth | JWT (username + password) | MonkeysCloud | — |
-| AI/LLM | Multi-provider (OpenRouter primary, fallback providers) | Called from NestJS backend | — |
+| AI/LLM | Multi-provider (OpenRouter, Groq, Together AI, NAVY AI) | Called from NestJS backend | — |
 
 ---
 
@@ -114,20 +114,21 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   }
   ```
 - Update `vite.config.ts` build output if needed (ensure `dist/` is correct)
-- Add Cloudflare Pages build settings documentation:
+- Cloudflare Pages build settings:
   - Build command: `npm run build`
   - Build output: `dist`
   - Root directory: `frontend/`
+  - No custom domain needed — use default `*.pages.dev` or Cloudflare-provided domain
 - Add `.env` variable documentation for Vite `VITE_API_URL` pointing to MonkeysCloud backend URL
 
 ### 3. Backend AI Feature Simplification (remove Qdrant, add multi-provider LLM)
 - Remove Qdrant module and all vector embedding logic
 - Add multi-provider LLM support with automatic fallback:
-  - Primary: OpenRouter (aggregates multiple models)
-  - Fallback 1: e.g., Groq, Together AI, or direct Anthropic/OpenAI API
-  - Fallback 2: second provider
+  - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI
+  - Admin can add/remove/reorder providers at runtime via admin interface
+  - Providers stored in DB: API key, base URL, model name, priority order
   - Backend tries providers in sequence if one fails (rate limit, outage, quota exhausted)
-  - All AI features (Mission assessment, Revision Centre quiz generation, CBT generation, Event Mission generation, Programme evaluation) use this fallback chain
+  - All AI features use this fallback chain: Mission assessment, Revision Centre quiz generation, CBT generation, Event Mission generation, Programme evaluation
 - Simplify AI Chat: direct LLM call via fallback chain, no document retrieval
 - Simplify Deep Research: LLM generates report from user-provided text via fallback chain
 - Simplify Exam Clone: text input → LLM generates practice questions via fallback chain
@@ -150,8 +151,8 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - `old_value`, `new_value` (JSON)
   - `timestamp`
   - Indexed by actor + timestamp for fast queries
-- **Fallback DB**: If MonkeysCloud DB fails, switch connection to Render free Postgres (90-day expiry, renew) or Neon (generous free tier). Schema stays the same — only `DATABASE_URL` changes.
-- **Fallback Cache**: If MonkeysCloud Redis fails, switch to Upstash Redis free tier — only `REDIS_URL` changes.
+- **Fallback DB**: Simplified hot failover — app tries primary `DATABASE_URL` first, if connection fails it automatically falls back to `DATABASE_URL_FALLBACK`. No complex sync, just failover. Schema stays the same.
+- **Fallback Cache**: Simplified hot failover — same pattern for Redis `REDIS_URL` and `REDIS_URL_FALLBACK`.
 
 ### 5. Backend Deployment to MonkeysCloud
 - Create `Dockerfile` for NestJS backend (MonkeysCloud supports Docker)
@@ -161,12 +162,13 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - `REDIS_URL` — MonkeysCloud Redis connection string
   - `JWT_SECRET` — generate new secret
   - `OPENROUTER_API_KEY` — primary LLM API key
-  - `LLM_FALLBACK_1_API_KEY` — fallback provider 1 (e.g., Groq, Together AI, or second OpenRouter key)
-  - `LLM_FALLBACK_2_API_KEY` — fallback provider 2
-  - `LLM_FALLBACK_1_URL` — fallback provider 1 base URL
-  - `LLM_FALLBACK_2_URL` — fallback provider 2 base URL
+  - `GROQ_API_KEY` — Groq fallback provider
+  - `TOGETHER_API_KEY` — Together AI fallback provider
+  - `NAVY_API_KEY` — NAVY AI fallback provider
+  - `NAVY_API_URL` — NAVY AI base URL
   - `CORS_ORIGIN` — Cloudflare Pages domain
   - `ADMIN_DEFAULT_PASSWORD` — password for pre-seeded Nightmare account
+- **LLM Provider Management**: Admin-only interface to add/remove/reorder LLM providers at runtime. Providers stored in DB with API key, base URL, model name, and priority order. Backend fallback chain reads from DB.
 - Update CORS to allow Cloudflare Pages origin
 - Enable WebSocket support in NestJS gateway config
 - **Fallback**: If MonkeysCloud has issues, deploy to Render (free tier, sleeps after 15 min). Same Dockerfile, just change platform. Database stays on MonkeysCloud or switches to Render free Postgres.
@@ -291,13 +293,11 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ## Open Questions
 
-1. **LLM fallback providers**: Which specific providers to use as fallback 1 and 2? (Recommend Groq + Together AI, or second OpenRouter key with different model routing)
-2. **Custom domain**: Will you use a custom domain for Cloudflare Pages, or the default `*.pages.dev`?
-3. **Data migration**: Any existing Studyield data to preserve, or starting fresh?
-4. **Database fallback strategy**: Should we pre-configure connection strings for Render/Neon as hot-failover, or only switch manually if MonkeysCloud fails?
-5. **Monster designs**: Need 3-5 initial monster types with specific attack patterns, HP/SP values, and visual themes (see recommended list in plan)
-6. **Card designs**: Need 10-15 initial cards with abilities, SP costs, and rarity tiers
-7. **Area designs**: Need 3 initial Areas with subsections, mini-bosses, and final boss per Area
+1. **LLM providers**: NAVY AI confirmed as fallback. OpenRouter, Groq, Together AI also included. All admin-managed at runtime.
+2. **Data migration**: Starting fresh — no existing Studyield data to preserve.
+3. **Monster designs**: Need 3-5 initial monster types with specific attack patterns, HP/SP values, and visual themes (see recommended list in RPG layer section)
+4. **Card designs**: Need 10-15 initial cards with abilities, SP costs, and rarity tiers
+5. **Area designs**: Need 3 initial Areas with subsections, mini-bosses, and final boss per Area
 
 ---
 
