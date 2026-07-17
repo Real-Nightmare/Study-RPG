@@ -191,19 +191,22 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Programme creation: cost SLC to submit a programme for approval
 
 ### Block Tales-Inspired Battle System
-- Turn-based card combat against study-themed monsters (exact copy of Block Tales mechanics adapted for web)
+- Turn-based card combat against study-themed monsters (simplified Block Tales mechanics)
+- **Purpose**: Serves CBSE HOTS (Higher Order Thinking Skills) through strategic gameplay — analysis, planning, adaptive thinking
 - Cards represent study actions: Attack = answer correctly, Defend = use hint/review, Heal = reinforce knowledge
-- Monster abilities = common study difficulties (distractors, time pressure, confusion)
+- Monster abilities = abstract study challenges (not direct Q&A)
 - Win by reducing monster HP to 0 before player HP reaches 0
-- SP economy: cards cost SP, SP regenerates each turn (simplified from Block Tales)
-- Guard timing: block monster attacks for reduced damage (simplified implementation)
-- Card decks = study sets; equipping cards = selecting which study tools to bring into battle
+- Simplified SP economy: cards cost SP, SP regenerates each turn
+- Simplified guard: basic block reduces incoming damage
+- **Card decks = study sets**; equipping cards = selecting study tools for battle
+- **XP earned from**: fighting monsters, completing study sessions, Event Missions, CBT, Revision Centre — all sources grant XP toward levels
+- Challenging but achievable — requires strategy, not just memorization
 
-### Worlds & Portals (Progression Map)
-- **Overworld**: Beginner/intermediate topics, multiple subsections, mini-bosses, final boss to unlock next world
+### Areas & Portals (Progression Map)
+- **Overworld**: Beginner/intermediate topics, multiple subsections, mini-bosses, final boss unlocks next Area
 - **Otherworld**: Glitched/hard mode version of Overworld (Pig 64 Roblox-inspired), advanced topics
 - **The End**: Final boss, mastery exam, beats the main game
-- **The Limbo**: Endgame portal, requires beating The End + reaching level 35 (future update, not in initial release)
+- **The Limbo**: Endgame portal, requires beating The End + reaching level 35 (future update)
 
 ### Card System
 - **Rarity tiers**: Common, Super Rare, **Legendary, Mythic** (only Legendary/Mythic are non-earnable — must come from battlepass/events)
@@ -238,10 +241,10 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ### RPG Progression Loop
 1. Study → earn XP (levels) + EXP (battlepass) + SLC (currency)
-2. Level up → unlock new worlds/portals
+2. Level up → unlock new Areas/portals
 3. Earn SLC → buy cards, abilities, items, cosmetics
 4. Equip cards/abilities → enter battles (Block Tales-style combat)
-5. Win battles → progress through worlds, earn more rewards
+5. Win battles → progress through Areas, earn more rewards
 6. Complete Event Missions → battlepass EXP → Legendary/Mythic cards
 
 ### Admin/Teacher Controls
@@ -259,7 +262,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 4. **Database fallback strategy**: Should we pre-configure connection strings for Render/Neon as hot-failover, or only switch manually if MonkeysCloud fails?
 5. **Teacher capabilities**: Can teachers create study sets for their class, view student progress, grade submissions? What else?
 6. **Account approval workflow**: Should new accounts require admin approval before access, or are they active immediately?
-7. **SLC sinks**: What can SLC be spent on? (See RPG layer — spending options TBD)
+7. **Monster design**: What do monsters look like and how do they behave? (Need at least 3-5 monster types for initial release)
 
 ---
 
