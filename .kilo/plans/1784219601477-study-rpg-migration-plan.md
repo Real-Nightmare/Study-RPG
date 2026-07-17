@@ -74,6 +74,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Remove email notification UI
 - Update `index.html` title, favicon, meta description
 - Remove unused icon imports (Lucide icons for payment/blog features)
+- Add dark mode support: system-preference detection + manual toggle, persisted in localStorage
 
 ### 1.5. Auth System Redesign
 - Remove email-based registration entirely — no self-registration
@@ -121,7 +122,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - No custom domain needed — use default `*.pages.dev` or Cloudflare-provided domain
 - Add `.env` variable documentation for Vite `VITE_API_URL` pointing to MonkeysCloud backend URL
 
-### 3. Backend AI Feature Simplification (remove Qdrant, add multi-provider LLM)
+### 3. Backend AI Feature Simplification & Tool Redesign (remove Qdrant, add multi-provider LLM)
 - Remove Qdrant module and all vector embedding logic
 - Add multi-provider LLM support with automatic fallback:
   - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI, Custom OpenAI-compatible
@@ -129,16 +130,83 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - Providers stored in DB: name, provider type (openrouter/groq/together/navy/custom_openai), API key, base URL, model name, priority order
   - Custom OpenAI-compatible provider allows admin to enter any OpenAI-compatible endpoint (e.g., local LLM, Ollama, LM Studio, vLLM, Together AI, Fireworks)
   - Backend tries providers in sequence if one fails (rate limit, outage, quota exhausted)
-  - All AI features use this fallback chain: Mission assessment, Revision Centre quiz generation, CBT generation, Event Mission generation, Programme evaluation
-- Simplify AI Chat: direct LLM call via fallback chain, no document retrieval
-- Simplify Deep Research: LLM generates report from user-provided text via fallback chain
-- Simplify Exam Clone: text input → LLM generates practice questions via fallback chain
-- Simplify Problem Solver: single LLM call with structured output via fallback chain
-- Simplify Knowledge Graph: LLM extracts entities → D3.js renders on frontend
-- Simplify Learning Paths: template-based sequencing (remove AI planning)
-- Simplify Teach-Back: text-only evaluation via LLM
-- Code Sandbox: restrict to JavaScript execution via Web Workers in browser
-- Keep Live Quiz and Collaborative Exam with Socket.io (MonkeysCloud supports WebSockets)
+  - All AI features use this fallback chain
+
+#### Simplified Tool Designs (no RAG, no vector DB, no multi-agent)
+
+**1. AI Chat** → Simple study chatbot
+- User types a study question or topic
+- Backend sends it + conversation history to LLM via fallback chain
+- LLM responds as a study tutor (no document context, no RAG)
+- No file uploads, no knowledge base
+- Frontend: chat UI with message history
+
+**2. Deep Research** → Text-to-report generator
+- User pastes source text / notes / topic description
+- Backend sends text + prompt to LLM: "Generate a structured research report with sections: Introduction, Key Points, Analysis, Conclusion, Sources"
+- LLM returns formatted report
+- Frontend: textarea input + formatted report output
+
+**3. Code Sandbox** → JavaScript-only browser execution
+- User writes JavaScript code in a code editor
+- Code runs in a Web Worker in the browser (no server execution)
+- No Python/NumPy/Pandas
+- Frontend: Monaco/CodeMirror editor + output console
+- Backend: not involved (pure frontend feature)
+
+**4. Knowledge Graph** → LLM-extracted entity visualization
+- User provides text / notes / topic
+- Backend sends text to LLM with prompt: "Extract key entities and relationships. Return JSON format: {nodes: [{id, label, type}], edges: [{source, target, label}]}"
+- LLM returns structured JSON
+- Frontend: D3.js force-directed graph renders the JSON
+- No vector embeddings, no similarity search
+
+**5. Learning Paths** → Template-based sequencing
+- No AI generation
+- Admin/teacher creates predefined learning paths (ordered list of topics/resources)
+- Student selects a path and progresses through it linearly
+- Each node = study set / quiz / note
+- Frontend: linear progression UI with unlock gates
+
+**6. Teach-Back** → Text-only Feynman evaluation
+- Student types an explanation of a concept in their own words
+- Backend sends explanation + concept prompt to LLM: "Evaluate this explanation for accuracy, clarity, and completeness. Score 1-10 and give feedback."
+- LLM returns score + feedback
+- Frontend: textarea input + score display + feedback text
+
+**7. Exam Clone** → Text-to-question generator
+- User pastes text from a textbook / notes / past paper
+- Backend sends text + prompt to LLM: "Generate 10 practice questions in the style of a CBSE exam. Mix MCQ, short answer, and long answer. Include answers."
+- LLM returns formatted questions
+- Frontend: textarea input + formatted quiz display
+
+**8. Multi-Agent Problem Solver** → Single LLM structured solver
+- User submits a problem (math, physics, etc.)
+- Backend sends problem + prompt to LLM: "Solve step by step. Format: Analysis → Step 1 → Step 2 → Step 3 → Final Answer → Verification."
+- LLM returns structured solution
+- Frontend: problem input + step-by-step solution display
+
+**9. Live Quiz** → Multiplayer quiz via WebSocket
+- Teacher creates quiz room with questions
+- Students join room via room code
+- Real-time questions via Socket.io (already in NestJS)
+- Scoring, timer, leaderboard in real-time
+- Frontend: quiz UI with live updates
+
+**10. Collaborative Exam** → Multiplayer exam via WebSocket
+- Teacher creates exam room with timed questions
+- Students join via room code
+- Real-time exam session via Socket.io
+- Proctoring: teacher sees live submissions
+- Scoring and results after exam ends
+- Frontend: exam UI with timer and live submission tracking
+
+#### AI Feature Integration Points (all use fallback chain)
+- Mission assessment (teacher-created → AI grades)
+- Revision Centre quiz generation (AI generates quiz from topic)
+- CBT generation (AI generates 30-mark CBSE-style exam)
+- Event Mission generation (AI generates understanding-based questions from user notes)
+- Programme evaluation (AI evaluates programme quality before admin/teacher approval)
 
 ### 4. Database Adjustments
 - Keep existing PostgreSQL schema (MonkeysCloud provides Postgres)
@@ -208,12 +276,12 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 | **CBT Programme** | Weekly optional board-exam-style test (30 marks, CBSE-aligned) | AI-assessed. Subject chosen by weekly community vote (or skip to rest) | Wallet |
 | **Programmes** | Student-created study programmes solving real study problems | **No reward** for creators. Requires approval by AI + admin/teacher before going live | — |
 
-### Spending SLC (TBD — see open questions)
-- Deflationary sinks needed to make SLC meaningful
-- Cosmetic/identity items: avatar skins, titles, profile themes
-- Functional buffs: XP multipliers, streak shields, hint tokens
-- Access passes: unlock premium programmes, exclusive study zones
-- Programme creation: cost SLC to submit a programme for approval
+### Spending SLC
+- Card marketplace (Common–Super Rare cards)
+- Ability shop (buy/replace card abilities)
+- Item shop (battle consumables)
+- Programme creation submission fee
+- Cosmetic shop (avatar skins, titles, profile themes, card backs)
 
 ### Block Tales-Inspired Battle System
 - Turn-based card combat against study-themed monsters (simplified Block Tales mechanics)
@@ -257,13 +325,6 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Buy items with SLC
 - Items counter specific monster abilities (e.g., "Focus Orb" reduces monster confusion chance)
 - Consumable or equippable depending on item type
-
-### Deflationary SLC Sinks (Spending)
-- Card marketplace (Common–Super Rare cards)
-- Ability shop (buy/replace card abilities)
-- Item shop (battle consumables)
-- Programme creation submission fee
-- Cosmetic shop (avatar skins, titles, profile themes, card backs)
 
 ### RPG Progression Loop
 1. Study → earn XP (levels) + EXP (battlepass) + SLC (currency)
