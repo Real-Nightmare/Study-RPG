@@ -203,7 +203,8 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Challenging but achievable — requires strategy, not just memorization
 
 ### Areas & Portals (Progression Map)
-- **Overworld**: Beginner/intermediate topics, multiple subsections, mini-bosses, final boss unlocks next Area
+- **Worlds** contain multiple **Areas** — each Area has subsections, mini-bosses, and a final boss
+- **Overworld**: Beginner/intermediate topics, multiple Areas, final Area boss unlocks next World
 - **Otherworld**: Glitched/hard mode version of Overworld (Pig 64 Roblox-inspired), advanced topics
 - **The End**: Final boss, mastery exam, beats the main game
 - **The Limbo**: Endgame portal, requires beating The End + reaching level 35 (future update)
