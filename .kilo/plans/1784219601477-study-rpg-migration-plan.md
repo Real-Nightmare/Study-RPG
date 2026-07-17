@@ -122,91 +122,101 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - No custom domain needed — use default `*.pages.dev` or Cloudflare-provided domain
 - Add `.env` variable documentation for Vite `VITE_API_URL` pointing to MonkeysCloud backend URL
 
-### 3. Backend AI Feature Simplification & Tool Redesign (remove Qdrant, add multi-provider LLM)
+### 3. Backend AI Feature Redesign (remove Qdrant, recreate tools with multi-provider LLM + PostgreSQL)
 - Remove Qdrant module and all vector embedding logic
 - Add multi-provider LLM support with automatic fallback:
   - Providers: OpenRouter (primary), Groq, Together AI, NAVY AI, Custom OpenAI-compatible
   - Admin can add/remove/reorder providers at runtime via admin interface
-  - Providers stored in DB: name, provider type (openrouter/groq/together/navy/custom_openai), API key, base URL, model name, priority order
-  - Custom OpenAI-compatible provider allows admin to enter any OpenAI-compatible endpoint (e.g., local LLM, Ollama, LM Studio, vLLM, Together AI, Fireworks)
+  - Providers stored in DB: name, provider type, API key, base URL, model name, priority order
   - Backend tries providers in sequence if one fails (rate limit, outage, quota exhausted)
   - All AI features use this fallback chain
+- **RAG replacement**: Store uploaded document text in PostgreSQL. For retrieval, use LLM-based semantic search — send query + document chunks to LLM with prompt to identify relevant passages. No vector DB needed; LLM does the semantic matching directly.
+- **PDF parsing**: Use `pdf-parse` or `pdf.js` on backend to extract text from uploaded PDFs before sending to LLM.
 
-#### Simplified Tool Designs (no RAG, no vector DB, no multi-agent)
+#### Tool Redesigns (accurate recreations, not simplified)
 
-**1. AI Chat** → Simple study chatbot
-- User types a study question or topic
-- Backend sends it + conversation history to LLM via fallback chain
-- LLM responds as a study tutor (no document context, no RAG)
-- No file uploads, no knowledge base
-- Frontend: chat UI with message history
+**1. AI Chat (RAG)** → Full conversational study tutor with document context
+- User uploads documents (PDF, DOCX, TXT) or pastes text
+- Backend extracts text, stores in PostgreSQL with user_id + document_id
+- Chat messages include: user query + relevant document passages (retrieved via LLM semantic search on stored text)
+- LLM responds as study tutor, grounded in provided documents
+- Conversation history maintained per session
+- Frontend: chat UI with document upload, message history, source citations
+- No RAG pipeline needed — LLM does retrieval + generation in one call
 
-**2. Deep Research** → Text-to-report generator
-- User pastes source text / notes / topic description
-- Backend sends text + prompt to LLM: "Generate a structured research report with sections: Introduction, Key Points, Analysis, Conclusion, Sources"
-- LLM returns formatted report
-- Frontend: textarea input + formatted report output
+**2. Deep Research** → RAG-powered research report generator
+- User provides topic + source documents/notes
+- Backend extracts text from documents, stores in PostgreSQL
+- LLM retrieves relevant passages via semantic search, then generates structured report: Introduction, Key Findings, Analysis, Evidence, Conclusion, References
+- Citations reference specific document passages
+- Frontend: document upload + report output with collapsible source sections
 
-**3. Code Sandbox** → JavaScript-only browser execution
-- User writes JavaScript code in a code editor
-- Code runs in a Web Worker in the browser (no server execution)
-- No Python/NumPy/Pandas
-- Frontend: Monaco/CodeMirror editor + output console
-- Backend: not involved (pure frontend feature)
+**3. Code Sandbox** → Full Python + JavaScript execution
+- **JavaScript**: Runs in browser Web Worker (fast, no server cost)
+- **Python**: Uses Pyodide (Python in WebAssembly) running entirely in browser — gives full Python execution with NumPy, Pandas, SciPy, Matplotlib at zero server cost
+- No server-side execution needed
+- Frontend: Monaco editor + split-pane output console + file tabs
+- Backend: not involved for execution (pure frontend feature)
 
 **4. Knowledge Graph** → LLM-extracted entity visualization
 - User provides text / notes / topic
-- Backend sends text to LLM with prompt: "Extract key entities and relationships. Return JSON format: {nodes: [{id, label, type}], edges: [{source, target, label}]}"
-- LLM returns structured JSON
-- Frontend: D3.js force-directed graph renders the JSON
-- No vector embeddings, no similarity search
+- Backend sends text to LLM: "Extract all key entities and their relationships. Return strict JSON: {nodes: [{id, label, type, importance}], edges: [{source, target, relationship, strength}]}"
+- LLM returns structured JSON with entity importance scores
+- Frontend: D3.js force-directed graph with node sizing by importance, edge thickness by relationship strength, collapsible clusters, search/filter
 
-**5. Learning Paths** → Template-based sequencing
-- No AI generation
-- Admin/teacher creates predefined learning paths (ordered list of topics/resources)
-- Student selects a path and progresses through it linearly
-- Each node = study set / quiz / note
-- Frontend: linear progression UI with unlock gates
+**5. Learning Paths** → AI-generated personalized study routes
+- User provides: subject, goal (exam/basic/mastery), current level, available time
+- LLM generates ordered learning path with nodes: topic → subtopic → resource → quiz → checkpoint
+- Path stored in PostgreSQL, user progresses through nodes sequentially
+- Unlock gates: must pass checkpoint quiz to advance
+- Frontend: visual path/progression UI with node status (locked/active/completed)
 
-**6. Teach-Back** → Text-only Feynman evaluation
-- Student types an explanation of a concept in their own words
-- Backend sends explanation + concept prompt to LLM: "Evaluate this explanation for accuracy, clarity, and completeness. Score 1-10 and give feedback."
-- LLM returns score + feedback
-- Frontend: textarea input + score display + feedback text
+**6. Teach-Back** → Feynman technique with voice + text evaluation
+- **Voice input**: Uses Web Speech API (browser-native speech-to-text, free)
+- **Text input**: Student types explanation
+- Backend sends explanation + concept to LLM: "Evaluate this explanation using Feynman technique criteria: accuracy, clarity, completeness, simplicity. Score each 1-10. Identify gaps. Suggest improvements."
+- LLM returns detailed evaluation with scores and feedback
+- Frontend: voice record button + textarea + score dashboard + gap analysis
 
-**7. Exam Clone** → Text-to-question generator
-- User pastes text from a textbook / notes / past paper
-- Backend sends text + prompt to LLM: "Generate 10 practice questions in the style of a CBSE exam. Mix MCQ, short answer, and long answer. Include answers."
-- LLM returns formatted questions
-- Frontend: textarea input + formatted quiz display
+**7. Exam Clone** → PDF/text-to-question generator with vector-like retrieval
+- User uploads PDF/textbook/past paper or pastes text
+- Backend extracts text via pdf-parse, stores in PostgreSQL
+- LLM analyzes text structure, identifies key topics, generates questions in CBSE format: MCQ (1 mark), Short Answer (2-3 marks), Long Answer (5 marks)
+- Includes answer key with marking scheme
+- Frontend: file upload + generated quiz preview + download as PDF
 
-**8. Multi-Agent Problem Solver** → Single LLM structured solver
-- User submits a problem (math, physics, etc.)
-- Backend sends problem + prompt to LLM: "Solve step by step. Format: Analysis → Step 1 → Step 2 → Step 3 → Final Answer → Verification."
-- LLM returns structured solution
-- Frontend: problem input + step-by-step solution display
+**8. Multi-Agent Problem Solver** → Sequential specialist agents with streaming
+- **Agent 1 (Analyst)**: Breaks down problem, identifies type, lists knowns/unknowns
+- **Agent 2 (Solver)**: Applies step-by-step solution with reasoning
+- **Agent 3 (Verifier)**: Checks each step for errors, validates final answer
+- **Agent 4 (Hint Generator)**: Provides progressive hints if user is stuck
+- Backend calls LLM sequentially, streams each agent's output via SSE
+- Camera scan: user uploads photo of problem → backend uses vision-capable LLM (OpenRouter multimodal) to extract text → feeds to Agent 1
+- Frontend: problem input (text/camera) + agent output panels with streaming + hint system
 
-**9. Live Quiz** → Multiplayer quiz via WebSocket
-- Teacher creates quiz room with questions
-- Students join room via room code
-- Real-time questions via Socket.io (already in NestJS)
-- Scoring, timer, leaderboard in real-time
-- Frontend: quiz UI with live updates
-
-**10. Collaborative Exam** → Multiplayer exam via WebSocket
-- Teacher creates exam room with timed questions
+**9. Live Quiz** → Real-time multiplayer quiz rooms
+- Teacher creates room, sets quiz parameters (time per question, scoring)
 - Students join via room code
-- Real-time exam session via Socket.io
-- Proctoring: teacher sees live submissions
-- Scoring and results after exam ends
-- Frontend: exam UI with timer and live submission tracking
+- Questions delivered in real-time via Socket.io
+- Auto-scoring, live leaderboard, timer per question
+- Teacher dashboard: see all submissions, pause/resume, view stats
+- Frontend: student quiz UI + teacher admin UI
 
-#### AI Feature Integration Points (all use fallback chain)
+**10. Collaborative Exam** → Real-time multiplayer exam sessions
+- Teacher creates timed exam with question bank
+- Students join via room code
+- Real-time exam session via Socket.io with countdown timer
+- Proctoring dashboard: teacher sees live submissions, flags suspicious activity
+- Auto-submit when timer ends
+- Post-exam: detailed analytics per student, question difficulty analysis
+- Frontend: exam UI with timer + teacher proctoring dashboard
+
+#### AI Feature Integration Points (all use multi-provider fallback)
 - Mission assessment (teacher-created → AI grades)
 - Revision Centre quiz generation (AI generates quiz from topic)
 - CBT generation (AI generates 30-mark CBSE-style exam)
 - Event Mission generation (AI generates understanding-based questions from user notes)
-- Programme evaluation (AI evaluates programme quality before admin/teacher approval)
+- Programme evaluation (AI evaluates programme quality, pedagogical soundness, feasibility)
 
 ### 4. Database Adjustments
 - Keep existing PostgreSQL schema (MonkeysCloud provides Postgres)
