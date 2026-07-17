@@ -277,6 +277,57 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 5. Win battles → progress through Areas, earn more rewards
 6. Complete Event Missions → battlepass EXP → Legendary/Mythic cards
 
+### Initial Game Content
+
+#### Monsters (5 types, CBSE HOTS-themed)
+| Monster | Theme | HP | SP | Attack Pattern | Weakness | Drops |
+|---------|-------|----|----|---------------|----------|-------|
+| **Confusion Beast** | Distractor questions | 80 | 20 | Random target, applies Confuse (+2 SP cost next turn) | Defend cards clear confusion | SLC, Common cards |
+| **Time Wraith** | Procrastination/pressure | 70 | 35 | Fast attacks, reduces player SP regen by 1 | Heal cards restore SP regen | SLC, Common cards |
+| **Memory Phantom** | Rote memorization | 100 | 15 | Drains 5 HP/turn ("forgetting") | Attack cards deal +50% damage | SLC, Super Rare cards |
+| **Doubt Golem** | Self-doubt/imposter | 120 | 25 | High defense, reflects 30% damage | Break ability cards bypass defense | SLC, Super Rare cards |
+| **Error Spirit** | Careless mistakes | 60 | 30 | Low HP but 25% crit chance | Guard timing halves crit damage | SLC, Common cards |
+
+#### Initial Cards (12 obtainable, 2 battlepass-exclusive)
+| Card | Rarity | SP Cost | Ability 1 | Ability 2 | Ability 3 | Ability 4 | Effect |
+|------|--------|---------|-----------|-----------|-----------|-----------|--------|
+| **Basic Strike** | Common | 2 | Attack | — | — | — | 15 damage |
+| **Basic Guard** | Common | 1 | Defend | Clear confusion | — | — | Block 10 damage, clear confusion |
+| **Quick Heal** | Common | 2 | Heal | — | — | — | Restore 15 HP |
+| **Focus** | Common | 1 | Buff | +10% next attack | — | — | Next card deals +15% damage |
+| **Power Strike** | Super Rare | 3 | Attack | Break defense | — | — | 25 damage, bypasses 30% defense |
+| **Iron Guard** | Super Rare | 2 | Defend | Reflect 20% | Restore 1 SP | — | Block 15, reflect 5, regen 1 SP |
+| **Knowledge Boost** | Super Rare | 3 | Heal | +10 max HP (battle) | — | — | Restore 20 HP, temp +10 max HP |
+| **Clarity** | Super Rare | 2 | Buff | Remove debuffs | +15% all stats | — | Clear all debuffs, +15% damage/defense |
+| **Mind Clearer** | Legendary | 3 | Attack | Heal | Clear confusion | Restore 2 SP | 20 damage, heal 10, clear confusion, regen 2 SP |
+| **Scholar's Edge** | Legendary | 4 | Attack | Break | Crit +30% | — | 35 damage, bypass defense, high crit chance |
+| **Exam Aegis** | Mythic | 2 | Defend | Full heal | Immunity 1 turn | — | Block all damage, full heal, next turn immune |
+| **Ultimate Comprehension** | Mythic | 5 | Attack | Heal | Buff | Break | 50 damage, heal 25, +20% stats, bypass defense |
+
+*Legendary/Mythic cards are battlepass/event-only. First battlepass final reward = Mind Clearer.*
+
+#### Initial Areas (3 Areas, inside Overworld)
+| Area | Theme | Subsections | Mini-bosses | Final boss | Required level | Rewards |
+|------|-------|-------------|-------------|------------|----------------|---------|
+| **Area 1: Foundations** | Basic concepts | 3 subsections (Recall, Understand, Apply) | Confusion Beast x2 | Time Wraith (boss) | 1 | SLC, Common cards, unlocks Area 2 |
+| **Area 2: Applications** | Problem solving | 3 subsections (Analyze, Evaluate, Create) | Memory Phantom x2 | Doubt Golem (boss) | 5 | SLC, Super Rare cards, unlocks Area 3 |
+| **Area 3: Mastery** | Advanced synthesis | 3 subsections (Synthesize, Debate, Innovate) | Error Spirit x2 | Error Spirit (final boss, empowered) | 10 | SLC, unlocks Otherworld, title "Mastermind" |
+
+#### Worlds Structure
+| World | Contains | Unlock condition |
+|-------|----------|------------------|
+| **Overworld** | Areas 1–3 | Starting world |
+| **Otherworld** | Glitched versions of Areas 1–3 (harder stats, modified patterns) | Beat Area 3 final boss |
+| **The End** | Single mastery exam/area | Beat Otherworld |
+| **The Limbo** | Endgame content | Beat The End + level 35 (future update) |
+
+#### Battlepass Season 1 (example)
+- Duration: 1 month
+- EXP required for final reward: 5000 EXP
+- Final reward: **Mind Clearer** (Legendary card)
+- Tier rewards: SLC boosts, Common/Super Rare cards, cosmetics, ability tokens
+- Event Missions: AI-generated from user notes, understanding-based questions
+
 ### Admin/Teacher Controls
 - Teachers have **full admin abilities** (same permissions as admin):
   - Create accounts (username, name, password, role)
@@ -293,11 +344,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ## Open Questions
 
-1. **LLM providers**: NAVY AI confirmed as fallback. OpenRouter, Groq, Together AI also included. All admin-managed at runtime.
-2. **Data migration**: Starting fresh — no existing Studyield data to preserve.
-3. **Monster designs**: Need 3-5 initial monster types with specific attack patterns, HP/SP values, and visual themes (see recommended list in RPG layer section)
-4. **Card designs**: Need 10-15 initial cards with abilities, SP costs, and rarity tiers
-5. **Area designs**: Need 3 initial Areas with subsections, mini-bosses, and final boss per Area
+1. **None pending** — all major design decisions resolved. Game content (monsters, cards, areas) designed in "Initial Game Content" section. Minor tweaks to content can be made during implementation.
 
 ---
 
