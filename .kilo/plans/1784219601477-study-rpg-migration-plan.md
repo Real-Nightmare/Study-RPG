@@ -14,7 +14,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 | Database | PostgreSQL | MonkeysCloud (included) | Render free Postgres / Neon |
 | Cache | Redis | MonkeysCloud (included) | Upstash Redis (free tier) |
 | Real-time | Socket.io | MonkeysCloud | Render (paid only — see note) |
-| Auth | JWT + Google OAuth | MonkeysCloud | — |
+| Auth | JWT (username + password) | MonkeysCloud | — |
 | AI/LLM | OpenRouter API | Called from NestJS backend | — |
 
 ---
@@ -45,14 +45,17 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Collaborative Exam
 
 ### Keep (Infrastructure)
-- JWT + Google OAuth authentication
-- Email notifications (simplified — remove FCM push)
+- JWT authentication (password-only, no email/Google/Apple)
 - Sitemap, cookies, privacy, terms, data deletion pages
 
 ### Remove
+- Google OAuth
+- Apple Sign-In
+- Email-based registration / verification
+- Password reset via email
+- Email notifications (FCM push already removed)
 - Stripe payments / subscriptions
 - Blog module
-- Apple Sign-In
 - All non-English i18n (keep English only)
 - ClickHouse analytics (replace with simpler logging or remove)
 - Qdrant vector DB — simplify AI features to use OpenRouter directly without RAG/embeddings
@@ -66,10 +69,30 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Remove non-English translation files (keep `en` only)
 - Remove Stripe/payment components, routes, and pages
 - Remove blog routes, components, and CMS integration
-- Remove Apple Sign-In button/flow
+- Remove Google OAuth and Apple Sign-In buttons/flows
 - Remove FCM push notification setup
+- Remove email notification UI
 - Update `index.html` title, favicon, meta description
 - Remove unused icon imports (Lucide icons for payment/blog features)
+
+### 1.5. Auth System Redesign
+- Replace email-based registration with username-only registration: `name`, `username`, `password`
+- Remove email verification flow entirely
+- Remove password reset via email (keep simple or remove)
+- Seed database with pre-built admin account:
+  - username: `Nightmare`
+  - name: `Joshua Martin`
+  - password: generate a default or set via env var
+  - role: `admin`
+- Add role system: `student`, `teacher`, `admin`
+- Admin capabilities:
+  - Promote/demote users to admin
+  - Create accounts on behalf of other users
+  - Approve pending registrations (if approval workflow is desired)
+  - Assign teacher permissions to accounts
+- Teacher capabilities (define scope — see open questions below)
+- Update login/register UI to match new fields
+- Remove all email-related auth infrastructure (SMTP, email templates, etc.)
 
 ### 2. Frontend Cloudflare Pages Config
 - Create `public/_routes.json` for SPA fallback:
@@ -115,9 +138,9 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
   - `DATABASE_URL` — MonkeysCloud PostgreSQL connection string
   - `REDIS_URL` — MonkeysCloud Redis connection string
   - `JWT_SECRET` — generate new secret
-  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth credentials
   - `OPENROUTER_API_KEY` — LLM API key
   - `CORS_ORIGIN` — Cloudflare Pages domain
+  - `ADMIN_DEFAULT_PASSWORD` — password for pre-seeded Nightmare account
 - Update CORS to allow Cloudflare Pages origin
 - Enable WebSocket support in NestJS gateway config
 - **Fallback**: If MonkeysCloud has issues, deploy to Render (free tier, sleeps after 15 min). Same Dockerfile, just change platform. Database stays on MonkeysCloud or switches to Render free Postgres.
@@ -132,7 +155,7 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 - Deploy frontend to Cloudflare Pages (connect Git repo)
 - Deploy backend to MonkeysCloud
 - Run database migrations on MonkeysCloud Postgres
-- Test auth flow (register/login/Google OAuth)
+- Test auth flow (register/login with username+password, admin features)
 - Test each Main Feature (Flashcards, Quiz, Match, Notes, etc.)
 - Test each Tool (simplified versions)
 - Test Live Quiz multiplayer
@@ -143,11 +166,13 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ## Open Questions
 
-1. **Google OAuth**: Need to create Google Cloud project and configure OAuth consent screen — do you have existing credentials?
-2. **OpenRouter API key**: Need a key for AI features — have one already?
-3. **Custom domain**: Will you use a custom domain for Cloudflare Pages, or the default `*.pages.dev`?
-4. **Data migration**: Any existing Studyield data to preserve, or starting fresh?
-5. **Database fallback strategy**: Should we pre-configure connection strings for Render/Neon as hot-failover, or only switch manually if MonkeysCloud fails?
+1. **OpenRouter API key**: Need a key for AI features — have one already?
+2. **Custom domain**: Will you use a custom domain for Cloudflare Pages, or the default `*.pages.dev`?
+3. **Data migration**: Any existing Studyield data to preserve, or starting fresh?
+4. **Database fallback strategy**: Should we pre-configure connection strings for Render/Neon as hot-failover, or only switch manually if MonkeysCloud fails?
+5. **Teacher capabilities**: What can teachers do that students cannot? (e.g., create study sets for their class, view student progress, grade submissions?)
+6. **RPG layer design**: What RPG mechanics do you want? (See discussion below.)
+7. **Account approval workflow**: Should new accounts require admin approval before access, or are they active immediately?
 
 ---
 
