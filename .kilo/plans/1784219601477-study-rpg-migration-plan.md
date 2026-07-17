@@ -164,15 +164,54 @@ Rebrand Studyield as **Study RPG**, strip non-essential features, and deploy the
 
 ---
 
+## RPG Layer Design (Block Tales-inspired, CBSE-aligned)
+
+### Currency: SchoolCoin (SLC)
+- Deflationary currency — earned only through studying, not given freely beyond the 500 SLC joining bonus
+- Starting balance: 500 SLC on account creation
+- No other free SLC sources
+
+### Earning SLC
+
+| Source | How it works | Reward assessment | Reward destination |
+|--------|-------------|-------------------|-------------------|
+| **Joining bonus** | One-time on account creation | Fixed 500 SLC | Wallet |
+| **Missions** | Teacher-given tasks (homework, test papers, assignments) | AI-assessed (low rewards) | Wallet |
+| **Revision Centre Programme** | Student applies, studies a topic, marks it revised, takes quiz | AI-assessed (medium rewards). Passing threshold: 30%+. Depth over length — time spent does not matter, only understanding | **Revision Centre Funds** (public ledger) until student withdraws |
+| **Revision Centre penalty** | Score below 30% on revision quiz | Slash existing fund by 15% (no penalty if fund is empty) | — |
+| **Revision Centre streak** | Consecutive passing revision quizzes | Tracks streak (does not affect rewards) | — |
+| **CBT Programme** | Weekly optional board-exam-style test (30 marks, CBSE-aligned) | AI-assessed. Subject chosen by weekly community vote (or skip to rest) | Wallet |
+| **Programmes** | Student-created study programmes solving real study problems | **No reward** for creators. Requires approval by AI + admin/teacher before going live | — |
+
+### Spending SLC (TBD — see open questions)
+- Deflationary sinks needed to make SLC meaningful
+- Cosmetic/identity items: avatar skins, titles, profile themes
+- Functional buffs: XP multipliers, streak shields, hint tokens
+- Access passes: unlock premium programmes, exclusive study zones
+- Programme creation: cost SLC to submit a programme for approval
+
+### Block Tales Inspiration
+- Turn-based progression feel: each study session is a "battle" against a topic
+- Card/deck metaphor: study sets = card decks, quizzes = boss fights
+- Level/XP system retained from Studyield with SLC layered on top
+- Character identity through cosmetics purchased with SLC
+
+### Admin/Teacher Controls
+- Create Missions with custom SLC rewards
+- Approve/reject student Programmes
+- View Revision Centre fund ledger (public but admin can moderate)
+- Manage CBT weekly subject votes
+- Assign/revoke teacher permissions
+
 ## Open Questions
 
 1. **OpenRouter API key**: Need a key for AI features — have one already?
 2. **Custom domain**: Will you use a custom domain for Cloudflare Pages, or the default `*.pages.dev`?
 3. **Data migration**: Any existing Studyield data to preserve, or starting fresh?
 4. **Database fallback strategy**: Should we pre-configure connection strings for Render/Neon as hot-failover, or only switch manually if MonkeysCloud fails?
-5. **Teacher capabilities**: What can teachers do that students cannot? (e.g., create study sets for their class, view student progress, grade submissions?)
-6. **RPG layer design**: What RPG mechanics do you want? (See discussion below.)
-7. **Account approval workflow**: Should new accounts require admin approval before access, or are they active immediately?
+5. **Teacher capabilities**: Can teachers create study sets for their class, view student progress, grade submissions? What else?
+6. **Account approval workflow**: Should new accounts require admin approval before access, or are they active immediately?
+7. **SLC sinks**: What can SLC be spent on? (See RPG layer — spending options TBD)
 
 ---
 
