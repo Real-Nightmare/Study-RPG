@@ -26,10 +26,7 @@ interface SessionParticipant {
 @WebSocketGateway({
   namespace: 'exam-clone',
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || [
-      'http://localhost:3010',
-      'http://localhost:5189',
-    ],
+    origin: '*',
     credentials: true,
   },
 })

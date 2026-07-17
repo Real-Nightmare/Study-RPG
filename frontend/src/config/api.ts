@@ -3,6 +3,10 @@ export const API_CONFIG = {
   timeout: 30000,
 };
 
+if (!import.meta.env.VITE_API_URL && typeof window !== 'undefined') {
+  console.warn('[Study RPG] VITE_API_URL is not set. API calls will fail in production.');
+}
+
 export const ENDPOINTS = {
   // Auth
   auth: {
@@ -10,8 +14,6 @@ export const ENDPOINTS = {
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     me: '/users/me',
-    verifyEmail: '/auth/verify-email',
-    resendVerification: '/auth/resend-verification',
     changePassword: '/auth/change-password',
   },
   // Users
@@ -199,25 +201,7 @@ export const ENDPOINTS = {
     completeStep: (id: string, stepId: string) => `/learning-paths/${id}/steps/${stepId}/complete`,
     delete: (id: string) => `/learning-paths/${id}`,
   },
-  // Subscription
-  subscription: {
-    current: '/subscription',
-    plans: '/subscription/plans',
-    checkout: '/subscription/checkout',
-    portal: '/subscription/portal',
-    cancel: '/subscription/cancel',
-    usage: '/subscription/usage',
-    verifySession: '/subscription/verify-session',
-  },
-  // Notifications
-  notifications: {
-    list: '/notifications',
-    markAsRead: (id: string) => `/notifications/${id}/read`,
-    markAllAsRead: '/notifications/read-all',
-    delete: (id: string) => `/notifications/${id}`,
-    deleteAll: '/notifications',
-    preferences: '/notifications/preferences',
-  },
+  // RPG - Study RPG Layer
   // Notes
   notes: {
     list: (studySetId: string) => `/study-sets/${studySetId}/notes`,

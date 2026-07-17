@@ -11,10 +11,7 @@ import { BaseGateway } from './base.gateway';
 @WebSocketGateway({
   namespace: 'app',
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || [
-      'http://localhost:3010',
-      'http://localhost:5189',
-    ],
+    origin: '*',
     credentials: true,
   },
 })
