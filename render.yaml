@@ -1,4 +1,5 @@
 services:
+  # Backend API (NestJS)
   - type: web
     name: study-rpg-backend
     runtime: node
@@ -24,7 +25,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://study-rpg.pages.dev
+        value: https://study-rpg.onrender.com
       - key: OPENROUTER_API_KEY
         sync: false
       - key: GROQ_API_KEY
@@ -36,6 +37,22 @@ services:
       - key: ADMIN_DEFAULT_PASSWORD
         value: N1GHTMAREISGoD@123
 
+  # Frontend (Static site)
+  - type: static
+    name: study-rpg-frontend
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://study-rpg-backend.onrender.com
+      - key: VITE_WS_URL
+        value: https://study-rpg-backend.onrender.com
+      - key: BACKEND_URL
+        value: https://study-rpg-backend.onrender.com
+
+  # PostgreSQL database
   - type: pgsql
     name: study-rpg-db
     plan: free
@@ -43,8 +60,9 @@ services:
     user: studyrpg
     ipAllowList:
       - source: 0.0.0.0/0
-        description: Allow all IPs (for backend service)
+        description: Allow all IPs
 
+  # Redis cache (optional)
   - type: redis
     name: study-rpg-redis
     plan: free
