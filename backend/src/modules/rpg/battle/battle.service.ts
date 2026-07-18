@@ -271,24 +271,30 @@ export class BattleService {
       const slcReward = parseFloat(String(drops.slc || 10)) + (battle.turnCount as number) * 2;
       const xpReward = parseInt(String(drops.xp || 20), 10) + (battle.turnCount as number) * 5;
 
-      await this.slcService.addSLC(userId, {
-        amount: slcReward,
-        source: 'battle',
-        referenceId: battleId,
-        description: `Battle victory reward`,
+      await this.db.transaction(async (client) => {
+        await this.slcService.addSLCTx(
+          userId,
+          {
+            amount: slcReward,
+            source: 'battle',
+            referenceId: battleId,
+            description: `Battle victory reward`,
+          },
+          client,
+        );
+
+        await client.query(
+          `INSERT INTO xp_records (id, user_id, source, amount, description, created_at)
+           VALUES ($1, $2, 'battle', $3, $4, NOW())`,
+          [uuidv4(), userId, xpReward, 'Battle victory XP'],
+        );
+
+        await client.query(`UPDATE battles SET reward_slc = $1, reward_xp = $2 WHERE id = $3`, [
+          slcReward,
+          xpReward,
+          battleId,
+        ]);
       });
-
-      await this.db.query(
-        `INSERT INTO xp_records (id, user_id, source, amount, description, created_at)
-         VALUES ($1, $2, 'battle', $3, $4, NOW())`,
-        [uuidv4(), userId, xpReward, 'Battle victory XP'],
-      );
-
-      await this.db.query(`UPDATE battles SET reward_slc = $1, reward_xp = $2 WHERE id = $3`, [
-        slcReward,
-        xpReward,
-        battleId,
-      ]);
 
       return {
         battle: await this.buildBattleState(battleId, userId),

@@ -221,7 +221,7 @@ export default function CollaborativeExamPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, currentQuestionIndex, showResult]);
+  }, [phase, currentQuestionIndex, showResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll chat to bottom
   useEffect(() => {

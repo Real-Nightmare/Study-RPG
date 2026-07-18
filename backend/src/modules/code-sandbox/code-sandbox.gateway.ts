@@ -11,7 +11,10 @@ import { CodeSandboxService, ExecuteCodeDto } from './code-sandbox.service';
 import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 
-@WebSocketGateway({ namespace: 'code-sandbox', cors: { origin: process.env.CORS_ORIGIN?.split(',') || ['*'], credentials: true } })
+@WebSocketGateway({
+  namespace: 'code-sandbox',
+  cors: { origin: process.env.CORS_ORIGIN?.split(',') || ['*'], credentials: true },
+})
 @UseGuards(WsAuthGuard)
 @UseFilters(WsExceptionFilter)
 export class CodeSandboxGateway {

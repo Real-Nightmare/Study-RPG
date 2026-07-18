@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ export function PrivacyPage() {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState('introduction');
 
-  const tableOfContents: TableOfContentsItem[] = [
+  const tableOfContents: TableOfContentsItem[] = useMemo(() => [
     { id: 'introduction', title: t('privacyPage.toc.introduction'), icon: Shield },
     { id: 'information-collected', title: t('privacyPage.toc.informationCollected'), icon: Database },
     { id: 'how-we-use', title: t('privacyPage.toc.howWeUse'), icon: Eye },
@@ -40,7 +40,7 @@ export function PrivacyPage() {
     { id: 'your-rights', title: t('privacyPage.toc.yourRights'), icon: UserCheck },
     { id: 'third-party', title: t('privacyPage.toc.thirdParty'), icon: Globe },
     { id: 'contact', title: t('privacyPage.toc.contact'), icon: Mail },
-  ];
+  ], [t]);
 
   const securityMeasures = [
     { icon: Lock, title: t('privacyPage.dataSecurity.encryptionTransit'), desc: t('privacyPage.dataSecurity.encryptionTransitDesc') },

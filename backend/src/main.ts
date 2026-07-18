@@ -23,13 +23,13 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // CORS — allow the configured Cloudflare Pages origin (and any extra comma-separated origins)
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '');
   const allowedOrigins = corsOrigin
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
   app.enableCors({
-    origin: allowedOrigins.length ? allowedOrigins : '*',
+    origin: allowedOrigins.length ? allowedOrigins : false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     credentials: true,

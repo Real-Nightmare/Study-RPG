@@ -5,14 +5,15 @@ A CBSE-aligned study platform with RPG mechanics, Block Tales-inspired battles, 
 ## Architecture
 
 ```
-Frontend (Cloudflare Pages) → Backend (MonkeysCloud NestJS) → Database (Neon PostgreSQL + pgvector)
+Frontend (Render Static Site) → Backend (Render Web Service, NestJS) → Database (Render PostgreSQL + pgvector, Redis cache)
 ```
 
 | Layer | Platform | Stack | Purpose |
 |-------|----------|-------|---------|
-| Frontend | Cloudflare Pages | React 19 + Vite | Static SPA + Pages Functions API proxy |
-| Backend | MonkeysCloud | NestJS 10 | REST API, WebSocket, AI/LLM, RPG logic |
-| Database | Neon | PostgreSQL + pgvector | Data storage, vector search |
+| Frontend | Render Static Site | React 19 + Vite | Static SPA |
+| Backend | Render Web Service | NestJS 10 | REST API, WebSocket, AI/LLM, RPG logic |
+| Database | Render PostgreSQL | PostgreSQL + pgvector | Data storage, vector search |
+| Cache | Render Redis | Redis | Caching / realtime state |
 
 ## Folder Structure
 
@@ -33,20 +34,19 @@ Frontend (Cloudflare Pages) → Backend (MonkeysCloud NestJS) → Database (Neon
 │   ├── vite.config.ts
 │   └── .env.example
 │
-├── backend/           # NestJS app → deploy to MonkeysCloud
+├── backend/           # NestJS app → Render Web Service
 │   ├── src/
 │   │   ├── modules/              # Feature modules (auth, rpg, chat, etc.)
 │   │   ├── common/               # Guards, decorators, filters, gateways
 │   │   ├── types/                # TypeScript types
 │   │   └── main.ts               # App bootstrap
-│   ├── migrations/              # Database migrations
-│   ├── scripts/                 # Seed/admin scripts
+│   ├── scripts/                  # migrate.js (runs database/migrations), seed-admin.js
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── nest-cli.json
 │   └── .env.example
 │
-├── database/          # SQL migrations + seed data
+├── database/          # Canonical SQL migrations + seed data (single source of truth)
 │   ├── migrations/
 │   │   ├── 001_initial.sql
 │   │   ├── 002_add_pgvector.sql
@@ -57,9 +57,11 @@ Frontend (Cloudflare Pages) → Backend (MonkeysCloud NestJS) → Database (Neon
 │   │   ├── 007_rpg_cards.sql
 │   │   ├── 008_rpg_battlepass.sql
 │   │   ├── 009_rpg_shops.sql
-│   │   └── 010_rpg_special.sql
+│   │   ├── 010_rpg_special.sql
+│   │   ├── 011_teach_back.sql
+│   │   └── 012_legacy_feature_tables.sql
 │   └── seed/
-│       ├── seed_admin.sql
+│       ├── seed_admin.sql        # reference only; real seeding via scripts/seed-admin.js
 │       └── seed_game_content.sql
 │
 ├── DEPLOY.md          # Step-by-step deployment guide
@@ -68,73 +70,67 @@ Frontend (Cloudflare Pages) → Backend (MonkeysCloud NestJS) → Database (Neon
 
 ## Deployment Steps
 
+This project is configured for [Render](https://render.com) via `render.yaml`
+(infrastructure-as-code). It provisions a PostgreSQL database (with pgvector),
+a Redis instance, the NestJS backend web service, and the Vite static frontend.
+
 ### Prerequisites
 - GitHub account
-- Cloudflare account (free)
-- MonkeysCloud account (free, no credit card)
-- Neon PostgreSQL account (free)
+- Render account (free tier available)
+- Anthropic/OpenRouter/Groq/Together/NAVY API keys (optional, for AI features)
 
-### Step 1: Database Setup (Neon)
+### Step 1: Deploy via render.yaml
 
-1. Go to [neon.tech](https://neon.tech) and create a free account
-2. Create a new project: `study-rpg-db`
-3. Create a database: `studyrpg`
-4. Copy the connection string (format: `postgresql://user:pass@host/neondb?sslmode=require`)
-5. Enable pgvector extension: Run `CREATE EXTENSION IF NOT EXISTS vector;` in Neon SQL editor
-6. Run all migrations from `database/migrations/` in order (001 → 010)
-7. Run seed scripts from `database/seed/`
-8. Save the connection string as `DATABASE_URL`
+1. In Render, click **New** → **Blueprint** and connect this GitHub repo.
+2. Render reads `render.yaml` and provisions:
+   - `study-rpg-db` (PostgreSQL, database `studyrpg`)
+   - `study-rpg-redis` (Redis)
+   - `study-rpg-backend` (NestJS web service)
+   - `study-rpg-frontend` (static site served from `frontend/dist`)
+3. The backend's `startCommand` runs `npm run migrate` on first boot, which
+   applies all SQL migrations from `database/migrations/` in order (001 → 012)
+   and seeds the default admin account.
+4. Set the `sync: false` secrets in the Render dashboard before first deploy:
+   `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `TOGETHER_API_KEY`, `NAVY_API_KEY`,
+   and `ADMIN_DEFAULT_PASSWORD` (a strong, unique value — never the example).
 
-### Step 2: Backend Deployment (MonkeysCloud)
+### Step 2: Environment Variables (Render)
 
-1. Go to [monkeys.cloud](https://monkeys.cloud) and create account
-2. Create new project: `study-rpg-backend`
-3. Select stack: **Next.js** (auto-detected)
-4. Connect your GitHub repo
-5. Set environment variables in MonkeysCloud dashboard:
-   ```
-   DATABASE_URL=<your-neon-connection-string>
-   REDIS_URL=<optional-upstash-redis-url>
-   JWT_SECRET=<random-secret-key>
-   CORS_ORIGIN=<your-cloudflare-pages-url>
-   OPENROUTER_API_KEY=<your-openrouter-key>
-   GROQ_API_KEY=<your-groq-key>
-   TOGETHER_API_KEY=<your-together-key>
-   NAVY_API_KEY=<your-navy-key>
-   ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
-   ```
-6. Deploy — MonkeysCloud auto-detects Next.js and builds
-7. Save the backend URL (e.g., `https://study-rpg-backend.monkeyscloud.com`)
+Backend (`study-rpg-backend`):
+```
+DATABASE_URL           # injected from study-rpg-db (do not hardcode)
+REDIS_URL              # injected from study-rpg-redis (do not hardcode)
+JWT_SECRET             # auto-generated by Render
+CORS_ORIGIN            # your frontend URL, e.g. https://study-rpg-frontend.onrender.com
+OPENROUTER_API_KEY     # sync: false
+GROQ_API_KEY           # sync: false
+TOGETHER_API_KEY       # sync: false
+NAVY_API_KEY           # sync: false
+ADMIN_DEFAULT_PASSWORD # sync: false — set a strong unique password
+```
 
-### Step 3: Frontend Deployment (Cloudflare Pages)
+Frontend (`study-rpg-frontend`):
+```
+VITE_API_URL=https://study-rpg-backend.onrender.com
+VITE_WS_URL=https://study-rpg-backend.onrender.com
+BACKEND_URL=https://study-rpg-backend.onrender.com
+```
 
-1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → Pages
-2. Connect your GitHub repo
-3. Configure build settings:
-   - **Build command**: `npm run build`
-   - **Build output**: `dist`
-   - **Root directory**: `frontend/`
-4. Set environment variables:
-   ```
-   VITE_API_URL=/api
-   VITE_WS_URL=<your-monkeyscloud-backend-url>
-   BACKEND_URL=<your-monkeyscloud-backend-url>
-   ```
-5. Deploy — Cloudflare Pages builds and deploys
-6. Save the frontend URL (e.g., `https://study-rpg.pages.dev`)
+### Step 3: Post-Deployment
 
-### Step 4: Post-Deployment
+1. **Access admin panel** with the credentials you set for `ADMIN_DEFAULT_PASSWORD`:
+    - Username: `Nightmare`
+    - Password: `<ADMIN_DEFAULT_PASSWORD>`
+2. **Add LLM providers**: Admin → LLM Providers and add your API keys.
+3. **Test the app**: create a test account, log in, and exercise RPG features
+   (battle, cards, shop) and AI tools (chat, problem solver, etc.).
 
-1. **Update CORS**: Go back to MonkeysCloud and update `CORS_ORIGIN` to your Cloudflare Pages URL
-2. **Access admin panel**: Login with:
-   - Username: `Nightmare`
-   - Password: `N1GHTMAREISGoD@123`
-3. **Add LLM providers**: Go to Admin → LLM Providers and add your API keys
-4. **Test the app**:
-   - Create a test account
-   - Test login
-   - Test RPG features (battle, cards, shop)
-   - Test AI tools (chat, problem solver, etc.)
+### Manual migration / seeding (local or CI)
+
+```bash
+cd backend
+DATABASE_URL=<postgres-connection-string> npm run migrate   # runs all database/migrations + seeds admin
+```
 
 ## Local Development
 
@@ -156,10 +152,13 @@ npm run dev
 
 ### Database
 ```bash
-# Connect to Neon and run migrations
-psql <database/migrations/001_initial.sql>
-psql <database/migrations/002_add_pgvector.sql>
-# ... etc
+# Apply migrations via the migrate script (runs database/migrations/ in order)
+cd backend
+DATABASE_URL=<postgres-connection-string> npm run migrate
+# Or, to run an individual file directly:
+psql "$DATABASE_URL" -f database/migrations/001_initial.sql
+psql "$DATABASE_URL" -f database/migrations/002_add_pgvector.sql
+# ... etc (001 → 012)
 ```
 
 ## Environment Variables
@@ -172,15 +171,15 @@ VITE_WS_URL=<backend-url>
 
 ### Backend (.env.local)
 ```
-DATABASE_URL=<neon-connection-string>
+DATABASE_URL=<postgres-connection-string>
 REDIS_URL=<optional>
 JWT_SECRET=<random-secret>
-CORS_ORIGIN=<cloudflare-pages-url>
+CORS_ORIGIN=<frontend-url>
 OPENROUTER_API_KEY=<key>
 GROQ_API_KEY=<key>
 TOGETHER_API_KEY=<key>
 NAVY_API_KEY=<key>
-ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
+ADMIN_DEFAULT_PASSWORD=<strong-unique-password>
 ```
 
 ## Tech Stack
@@ -195,13 +194,13 @@ ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
 ### Backend
 - NestJS 10 (API routes, WebSocket gateways, modules)
 - Socket.io (real-time features)
-- PostgreSQL + pgvector (Neon)
+- PostgreSQL + pgvector (Render Postgres)
 - Multi-provider LLM (OpenRouter, Groq, Together, NAVY, Custom OpenAI)
 
 ### Database
 - PostgreSQL 16+
 - pgvector extension
-- Neon serverless Postgres
+- Render managed PostgreSQL
 
 ## Features
 
@@ -245,7 +244,7 @@ ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
 Default admin account:
 - Username: `Nightmare`
 - Name: `Joshua Martin`
-- Password: `N1GHTMAREISGoD@123`
+- Password: `<value of ADMIN_DEFAULT_PASSWORD env var>`
 
 Admin capabilities:
 - Create accounts

@@ -51,8 +51,15 @@ async function migrate() {
     const { rows: executed } = await client.query('SELECT name FROM migrations');
     const executedNames = new Set(executed.map(r => r.name));
 
-    // Get migration files
-    const migrationsDir = path.join(__dirname, '..', 'migrations');
+    // Get migration files. The canonical SQL migration set lives in
+    // <repo-root>/database/migrations. Resolve it relative to the backend
+    // directory (this script is in backend/scripts).
+    const backendDir = path.join(__dirname, '..');
+    const candidates = [
+      path.join(backendDir, '..', 'database', 'migrations'),
+      path.join(backendDir, 'migrations'),
+    ];
+    const migrationsDir = candidates.find(c => fs.existsSync(c)) || candidates[0];
     const files = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .sort();
@@ -90,15 +97,42 @@ async function migrate() {
 }
 
 async function seedAdmin() {
+  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+  if (!adminPassword) {
+    console.log('ADMIN_DEFAULT_PASSWORD not set — skipping admin seed.');
+    return;
+  }
+
   try {
     const { rows: existing } = await pool.query(
       'SELECT id FROM users WHERE username = $1',
       [(process.env.ADMIN_USERNAME || 'Nightmare').toLowerCase()],
     );
     if (existing.length > 0) {
-      console.log('Admin account already exists - skipping seed');
+      console.log(`Admin account already exists - skipping seed`);
       return;
     }
+
+    const bcrypt = require('bcrypt');
+    const { v4: uuidv4 } = require('uuid');
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+
+    await pool.query(
+      `INSERT INTO users (id, username, name, password, role, preferences, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'admin', $5, NOW(), NOW())`,
+      [
+        uuidv4(),
+        (process.env.ADMIN_USERNAME || 'Nightmare').toLowerCase(),
+        process.env.ADMIN_NAME || 'Joshua Martin',
+        hashedPassword,
+        JSON.stringify({}),
+      ],
+    );
+    console.log(`Seeded admin account: ${process.env.ADMIN_USERNAME || 'Nightmare'}`);
+  } catch (err) {
+    console.error('Admin seed failed:', err.message);
+  }
+}
 
     const bcrypt = require('bcrypt');
     const { v4: uuidv4 } = require('uuid');
