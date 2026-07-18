@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: study-rpg-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: ""
+      - key: DATABASE_URL
+        fromDatabase:
+          name: study-rpg-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: study-rpg-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://study-rpg.pages.dev
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: NAVY_API_KEY
+        sync: false
+      - key: ADMIN_DEFAULT_PASSWORD
+        value: N1GHTMAREISGoD@123
+
+  - type: pgsql
+    name: study-rpg-db
+    plan: free
+    databaseName: studyrpg
+    user: studyrpg
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: Allow all IPs (for backend service)
+
+  - type: redis
+    name: study-rpg-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
