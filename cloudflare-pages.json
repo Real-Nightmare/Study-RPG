@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "build": {
+    "command": "cd frontend && npm install && npm run build",
+    "output": "frontend/dist",
+    "root": "."
+  },
+  "env": {
+    "VITE_API_URL": "/api",
+    "VITE_WS_URL": "https://study-rpg-backend.onrender.com",
+    "BACKEND_URL": "https://study-rpg-backend.onrender.com"
+  }
+}

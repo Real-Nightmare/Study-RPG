@@ -1,93 +1,115 @@
 # Study RPG - Deployment Guide
 
-## Quick Start
+## Architecture
 
-### 1. Database Setup (Neon)
-
-1. Go to [neon.tech](https://neon.tech) → Sign up (free, no credit card)
-2. Click **"New Project"** → Name: `study-rpg` → Create
-3. Click **"New Branch"** → Name: `main` → Create
-4. Click **"Query"** → Run this SQL:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-5. Copy your **connection string** (starts with `postgresql://`)
-6. Save it as `DATABASE_URL`
-
-### 2. Upload Database Migrations
-
-1. Go to Neon → Your Project → **Query**
-2. Open `database/migrations/001_initial.sql` → Copy all → Paste into Neon Query → Run
-3. Repeat for each migration file in order:
-   - `001_initial.sql`
-   - `002_add_pgvector.sql`
-   - `003_add_audit_logs.sql`
-   - `004_add_llm_providers.sql`
-   - `005_rpg_core.sql`
-   - `006_rpg_battle.sql`
-   - `007_rpg_cards.sql`
-   - `008_rpg_battlepass.sql`
-   - `009_rpg_shops.sql`
-   - `010_rpg_special.sql`
-
-**Alternative**: Use the seed script:
-```bash
-psql YOUR_DATABASE_URL < database/seed/seed_all.sql
+```
+Frontend (Cloudflare Pages) → Backend (Render NestJS) → Database (Render PostgreSQL)
 ```
 
-### 3. Deploy Backend (MonkeysCloud)
+## Step 1: Deploy Backend (Render)
 
-1. Go to [monkeys.cloud](https://monkeys.cloud) → Sign up (free, no credit card)
-2. Click **"New Project"** → Name: `study-rpg-backend`
-3. Select **NestJS** as stack (or Node.js if NestJS isn't listed)
-4. Connect your GitHub repo OR upload the `backend/` folder
-5. Go to **Settings → Environment Variables** and add:
-   ```
-   DATABASE_URL=<your-neon-connection-string>
-   REDIS_URL=<optional-upstash-redis-url>
-   JWT_SECRET=<random-string-like-abc123xyz>
-   CORS_ORIGIN=<your-cloudflare-pages-url>
-   OPENROUTER_API_KEY=<your-openrouter-key>
-   GROQ_API_KEY=<your-groq-key>
-   TOGETHER_API_KEY=<your-together-key>
-   NAVY_API_KEY=<your-navy-key>
-   ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
-   ```
-6. Click **Deploy**
-7. Save your backend URL (e.g., `https://study-rpg-backend.monkeyscloud.com`)
+### Option A: Using Render Blueprint (automatic)
+1. Go to [render.com](https://render.com) → **New +** → **Blueprint**
+2. Connect your GitHub repo: `Real-Nightmare/Study-RPG`
+3. Select `render.yaml` from the root
+4. Render auto-creates: backend service + PostgreSQL + Redis
+5. Add environment variables in Render dashboard:
+   - `OPENROUTER_API_KEY` — your OpenRouter key
+   - `GROQ_API_KEY` — your Groq key
+   - `TOGETHER_API_KEY` — your Together AI key
+   - `NAVY_API_KEY` — your NAVY AI key
+   - Update `CORS_ORIGIN` to your Cloudflare Pages URL after frontend deploys
+6. Click **Create** → wait for build → save backend URL
 
-### 4. Deploy Frontend (Cloudflare Pages)
+### Option B: Manual creation
+1. Go to [render.com](https://render.com) → **New +** → **Web Service**
+2. Connect GitHub repo: `Real-Nightmare/Study-RPG`
+3. Settings:
+   - **Name**: `study-rpg-backend`
+   - **Root Directory**: `backend`
+   - **Runtime**: Node
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm run start:prod`
+   - **Plan**: Free
+4. Add environment variables:
+   - `DATABASE_URL` — from Render PostgreSQL
+   - `JWT_SECRET` — random string
+   - `CORS_ORIGIN` — your Cloudflare Pages URL
+   - `OPENROUTER_API_KEY` — your key
+   - `GROQ_API_KEY` — your key
+   - `TOGETHER_API_KEY` — your key
+   - `NAVY_API_KEY` — your key
+   - `ADMIN_DEFAULT_PASSWORD` — `N1GHTMAREISGoD@123`
+5. Create **PostgreSQL** database (free tier):
+   - Name: `study-rpg-db`
+   - Database: `studyrpg`
+   - Copy connection string → paste into backend `DATABASE_URL`
+6. Create **Redis** instance (free tier, optional):
+   - Name: `study-rpg-redis`
+   - Copy connection string → paste into backend `REDIS_URL`
+7. Deploy
+
+## Step 2: Deploy Frontend (Cloudflare Pages)
 
 1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → Pages
-2. Click **"Create a project"** → Connect your GitHub repo
+2. Click **Create a project** → Connect GitHub repo: `Real-Nightmare/Study-RPG`
 3. Configuration:
    - **Project name**: `study-rpg`
    - **Production branch**: `main`
    - **Build command**: `cd frontend && npm install && npm run build`
    - **Build output directory**: `frontend/dist`
-   - **Root directory**: Leave empty (or `/`)
-4. Go to **Settings → Environment Variables** and add:
-   ```
-   VITE_API_URL=/api
-   VITE_WS_URL=<your-monkeyscloud-backend-url>
-   BACKEND_URL=<your-monkeyscloud-backend-url>
-   ```
-5. Click **"Save and Deploy"**
+   - **Root directory**: `/`
+4. Environment variables:
+   - `VITE_API_URL` = `/api`
+   - `VITE_WS_URL` = `https://study-rpg-backend.onrender.com` (your Render backend URL)
+   - `BACKEND_URL` = `https://study-rpg-backend.onrender.com`
+5. Click **Save and Deploy**
 6. Save your frontend URL (e.g., `https://study-rpg.pages.dev`)
 
-### 5. Update Backend CORS
+## Step 3: Update Backend CORS
 
-1. Go back to MonkeysCloud → `study-rpg-backend` → Settings
+1. Go back to Render → `study-rpg-backend` → Environment
 2. Update `CORS_ORIGIN` to your Cloudflare Pages URL:
    ```
    CORS_ORIGIN=https://study-rpg.pages.dev
    ```
-3. Redeploy backend
+3. Save → Render auto-redeploys
 
-### 6. Verify Deployment
+## Step 4: Initialize Database
+
+1. In Render, go to your PostgreSQL instance → **Connect**
+2. Open **Query** tab
+3. Run migrations in order:
+   ```sql
+   -- Copy and paste each file from database/migrations/ in order:
+   -- 001_initial.sql
+   -- 002_add_pgvector.sql
+   -- 003_add_audit_logs.sql
+   -- 004_add_llm_providers.sql
+   -- 005_rpg_core.sql
+   -- 006_rpg_battle.sql
+   -- 007_rpg_cards.sql
+   -- 008_rpg_battlepass.sql
+   -- 009_rpg_shops.sql
+   -- 010_rpg_special.sql
+   -- 011_teach_back.sql
+   ```
+4. Run seed scripts:
+   ```sql
+   -- Run database/seed/seed_admin.sql
+   -- Run database/seed/seed_game_content.sql
+   ```
+5. Or use the backend script:
+   ```bash
+   # From your local machine, after setting DATABASE_URL:
+   node backend/scripts/migrate.js
+   node backend/scripts/seed-admin.js
+   ```
+
+## Step 5: Verify Deployment
 
 1. Visit your Cloudflare Pages URL
-2. Open browser console → Should see no CORS errors
+2. Open browser console — should see no CORS errors
 3. Try logging in with:
    - **Username**: `Nightmare`
    - **Password**: `N1GHTMAREISGoD@123`
@@ -102,24 +124,25 @@ psql YOUR_DATABASE_URL < database/seed/seed_all.sql
 
 ```
 study-rpg/
-├── frontend/          # Upload to Cloudflare Pages
+├── frontend/          # → Deploy to Cloudflare Pages
 │   ├── src/
 │   ├── public/
 │   ├── functions/
+│   │   └── api/[[path]].ts   # Pages Functions proxy
 │   ├── package.json
-│   ├── vite.config.ts
-│   └── .env.example
+│   └── vite.config.ts
 │
-├── backend/           # Upload to MonkeysCloud (Next.js)
-│   ├── app/
-│   │   ├── api/
-│   │   └── layout.tsx
-│   ├── lib/
+├── backend/           # → Deploy to Render (rootDir: backend)
+│   ├── src/
+│   │   ├── modules/
+│   │   ├── common/
+│   │   └── main.ts
+│   ├── migrations/
+│   ├── scripts/
 │   ├── package.json
-│   ├── next.config.js
-│   └── .env.example
+│   └── Dockerfile
 │
-├── database/          # Run migrations on Neon
+├── database/          # Run on Render PostgreSQL
 │   ├── migrations/
 │   │   ├── 001_initial.sql
 │   │   ├── 002_add_pgvector.sql
@@ -128,48 +151,26 @@ study-rpg/
 │       ├── seed_admin.sql
 │       └── seed_game_content.sql
 │
-└── README.md          # This file
-```
-
-## Local Development
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:5173
-```
-
-### Backend
-```bash
-cd backend
-npm install
-npm run start:dev
-# → http://localhost:3000
-```
-
-### Database
-```bash
-# Connect to Neon and run migrations in order
-psql $DATABASE_URL < database/migrations/001_initial.sql
-psql $DATABASE_URL < database/migrations/002_add_pgvector.sql
-# ... etc
+├── render.yaml        # Render Blueprint
+└── cloudflare-pages.json  # Cloudflare Pages config
 ```
 
 ## Environment Variables
 
-### Frontend (.env)
+### Frontend (Cloudflare Pages)
 ```
 VITE_API_URL=/api
-VITE_WS_URL=<backend-url>
+VITE_WS_URL=https://your-backend.onrender.com
+BACKEND_URL=https://your-backend.onrender.com
 ```
 
-### Backend (.env.local)
+### Backend (Render)
 ```
-DATABASE_URL=<neon-connection-string>
+NODE_ENV=production
+DATABASE_URL=<render-postgres-connection-string>
+REDIS_URL=<render-redis-connection-string>
 JWT_SECRET=<random-secret>
-CORS_ORIGIN=<cloudflare-pages-url>
+CORS_ORIGIN=https://your-site.pages.dev
 OPENROUTER_API_KEY=<key>
 GROQ_API_KEY=<key>
 TOGETHER_API_KEY=<key>
@@ -177,42 +178,42 @@ NAVY_API_KEY=<key>
 ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
 ```
 
-## Troubleshooting
-
-### CORS Errors
-- Ensure `CORS_ORIGIN` in backend matches your Cloudflare Pages URL exactly
-- Redeploy backend after changing env vars
-
-### Database Connection Errors
-- Verify `DATABASE_URL` is correct
-- Ensure pgvector extension is enabled: `CREATE EXTENSION IF NOT EXISTS vector;`
-- Check Neon console for connection limits
-
-### WebSocket Not Connecting
-- Verify `VITE_WS_URL` points to your MonkeysCloud backend URL
-- Check backend logs for Socket.io connection errors
-- Ensure WebSocket CORS is configured
-
-### Cold Starts
-- MonkeysCloud free tier sleeps after 30 min
-- First request takes 3-5s to wake up
-- Normal behavior for free tier
-
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19 + Vite + Tailwind CSS |
-| Backend | Next.js 14+ API Routes + Socket.io |
-| Database | PostgreSQL 16 + pgvector (Neon) |
-| AI/LLM | OpenRouter + Groq + Together AI + NAVY AI |
-| Hosting | Cloudflare Pages + MonkeysCloud + Neon |
+| Layer | Technology | Host |
+|-------|-----------|------|
+| Frontend | React 19 + Vite + Tailwind | Cloudflare Pages |
+| Backend | NestJS 10 + Socket.io | Render |
+| Database | PostgreSQL + pgvector | Render |
+| Cache | Redis | Render |
+| AI/LLM | OpenRouter + Groq + Together + NAVY | External APIs |
 
 ## Admin Account
 
 - **Username**: `Nightmare`
 - **Password**: `N1GHTMAREISGoD@123`
 - **Role**: Admin (full access)
+
+## Troubleshooting
+
+### CORS Errors
+- Ensure `CORS_ORIGIN` in backend matches Cloudflare Pages URL exactly
+- Update in Render dashboard and redeploy
+
+### Database Connection
+- Verify `DATABASE_URL` is set in Render
+- Run migrations on Render PostgreSQL
+- Check Render logs for connection errors
+
+### WebSocket Not Connecting
+- Verify `VITE_WS_URL` points to Render backend URL
+- Check backend logs for Socket.io errors
+- Ensure WebSocket CORS is configured
+
+### Cold Starts
+- Render free tier sleeps after 15 min
+- First request takes ~10s to wake up
+- Normal behavior for free tier
 
 ## License
 
