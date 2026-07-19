@@ -1,3 +1,12 @@
+# =============================================================================
+# Study RPG — Render Blueprint (infrastructure-as-code)
+# -----------------------------------------------------------------------------
+# This is the SINGLE SOURCE OF TRUTH for production infrastructure.
+# Hosting is Render-only (no Cloudflare Pages / MonkeysCloud / Neon).
+# Deploy via Render Dashboard: New -> Blueprint -> connect this repo.
+# See DEPLOY.md for full step-by-step instructions.
+# =============================================================================
+
 services:
   # Backend API (NestJS)
   - type: web
@@ -8,6 +17,7 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /health
+    healthCheckTimeout: 120
     envVars:
       - key: NODE_ENV
         value: production
@@ -25,7 +35,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://study-rpg.onrender.com
+        value: https://study-rpg-frontend.onrender.com
       - key: OPENROUTER_API_KEY
         sync: false
       - key: GROQ_API_KEY
@@ -34,6 +44,33 @@ services:
         sync: false
       - key: NAVY_API_KEY
         sync: false
+      # Object storage (S3-compatible, no CC required)
+      # Recommended: Dark Storage (5GB free) or Synclyz (10GB free)
+      - key: S3_ACCOUNT_ID
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: S3_PUBLIC_URL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      # Alternative: Blomp (OpenStack Swift, 400GB free, no CC)
+      - key: BLOMP_ACCOUNT_ID
+        sync: false
+      - key: BLOMP_ACCESS_KEY_ID
+        sync: false
+      - key: BLOMP_SECRET_ACCESS_KEY
+        sync: false
+      - key: BLOMP_BUCKET_NAME
+        sync: false
+      - key: BLOMP_PUBLIC_URL
+        sync: false
+      - key: BLOMP_AUTH_URL
+        value: https://authenticate.blomp.com/v2.0/
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
 
@@ -67,3 +104,8 @@ services:
     name: study-rpg-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+
+  # Note: Render free tier automatically sleeps after 15 minutes of inactivity.
+  # To prevent sleep, use an external uptime monitor (e.g., UptimeRobot) to ping
+  # https://study-rpg-backend.onrender.com/health every 10 minutes.
+  # The health endpoint performs a quick DB and Redis ping.
