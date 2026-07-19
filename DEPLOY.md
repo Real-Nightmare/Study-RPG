@@ -24,6 +24,45 @@ backend web service, and the Vite static frontend.
 4. Deploy. The backend `startCommand` is `npm run start:prod`, and `npm run migrate`
    runs automatically on first boot (see below).
 
+## Object Storage (Blomp)
+
+This project uses [Blomp](https://www.blomp.com) for file storage by default.
+Blomp is S3-compatible and offers up to 400GB free storage.
+
+### Setup Steps
+
+1. Create a free account at [blomp.com](https://www.blomp.com)
+2. Go to **Integrations** → **AWS S3 Bucket** to get your S3-compatible credentials:
+   - **Account ID**: Your Blomp account email or account ID
+   - **Access Key ID**: Generate from Blomp dashboard
+   - **Secret Access Key**: Generate from Blomp dashboard
+   - **Bucket Name**: Your Blomp bucket/container name
+   - **Public URL**: Your Blomp public URL (e.g., `https://your-account.blomp.com`)
+3. In Render, go to `study-rpg-backend` → **Environment**
+4. Add these environment variables:
+   ```
+   BLOMP_ACCOUNT_ID=<your-blomp-account-id>
+   BLOMP_ACCESS_KEY_ID=<your-blomp-access-key>
+   BLOMP_SECRET_ACCESS_KEY=<your-blomp-secret-key>
+   BLOMP_BUCKET_NAME=<your-blomp-bucket-name>
+   BLOMP_PUBLIC_URL=<your-blomp-public-url>
+   BLOMP_AUTH_URL=https://authenticate.blomp.com
+   ```
+5. Redeploy the backend
+
+### Fallback Behavior
+
+If Blomp credentials are not configured, the app automatically falls back to
+**local disk storage** (`backend/uploads/`). Files are served at `/uploads/:key`.
+This is useful for development or if you don't need external storage.
+
+### Alternative Storage
+
+You can also use any S3-compatible storage:
+- Cloudflare R2: use `R2_*` env vars
+- AWS S3: use `S3_*` env vars
+- MinIO, DigitalOcean Spaces, etc.: use `S3_*` env vars with your endpoint
+
 ## Database Migrations
 
 Migrations live in `database/migrations/` and are applied in filename order by
@@ -38,7 +77,7 @@ Migrations live in `database/migrations/` and are applied in filename order by
 Order: `001_initial` → `002_add_pgvector` → `003_add_audit_logs` →
 `004_add_llm_providers` → `005_rpg_core` → `006_rpg_battle` → `007_rpg_cards` →
 `008_rpg_battlepass` → `009_rpg_shops` → `010_rpg_special` → `011_teach_back` →
-`012_legacy_feature_tables`.
+`012_legacy_feature_tables` → `013_rpg_triggers`.
 
 To run migrations manually (local or CI):
 
@@ -76,6 +115,11 @@ DATABASE_URL=<postgres-connection-string> npm run migrate
 | `GROQ_API_KEY` | `sync: false` | set in dashboard |
 | `TOGETHER_API_KEY` | `sync: false` | set in dashboard |
 | `NAVY_API_KEY` | `sync: false` | set in dashboard |
+| `BLOMP_ACCOUNT_ID` | `sync: false` | Blomp storage account ID |
+| `BLOMP_ACCESS_KEY_ID` | `sync: false` | Blomp S3 access key |
+| `BLOMP_SECRET_ACCESS_KEY` | `sync: false` | Blomp S3 secret key |
+| `BLOMP_BUCKET_NAME` | `sync: false` | Blomp bucket/container name |
+| `BLOMP_PUBLIC_URL` | `sync: false` | Blomp public URL for file access |
 | `ADMIN_DEFAULT_PASSWORD` | `sync: false` | set a strong unique value |
 
 > `DATABASE_URL` and `REDIS_URL` are provided by Render's service linking — never
@@ -123,8 +167,8 @@ DATABASE_URL=<postgres-connection-string> npm run migrate
 psql "$DATABASE_URL" -f database/seed/seed_game_content.sql
 ```
 
-A full local stack (Postgres, Redis, Qdrant, ClickHouse) is also available via
-Docker Compose: `docker compose --env-file .env.docker up`.
+A full local stack (Postgres, Redis) is also available via Docker Compose:
+`docker compose --env-file .env.docker up`.
 
 ## Troubleshooting
 
@@ -146,6 +190,11 @@ Docker Compose: `docker compose --env-file .env.docker up`.
 - Render free tier services spin down after inactivity; the first request wakes them
   up and may take a few seconds.
 
+### Storage Issues
+- If Blomp is configured, verify `BLOMP_*` env vars are set correctly.
+- If Blomp is not configured, files are stored locally in `backend/uploads/`.
+- Check backend logs for storage initialization messages.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -154,6 +203,7 @@ Docker Compose: `docker compose --env-file .env.docker up`.
 | Backend | NestJS 10 + Socket.io |
 | Database | PostgreSQL 16 + pgvector (Render) |
 | Cache | Redis (Render) |
+| Storage | Blomp (S3-compatible, free tier) or local disk fallback |
 | AI/LLM | OpenRouter + Groq + Together AI + NAVY AI |
 | Hosting | Render (Blueprint / `render.yaml`) |
 

@@ -108,7 +108,8 @@ async function bootstrap() {
   logger.log(`Application is running on: http://localhost:${port}`);
   logger.log(`Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`);
   logger.log(`WebSocket server ready`);
-  logger.log(`Storage backend: ${process.env.R2_ACCOUNT_ID ? 'R2' : 'Local disk'}`);
+  const storageBackend = process.env.BLOMP_ACCOUNT_ID ? 'Blomp' : process.env.R2_ACCOUNT_ID ? 'R2' : process.env.S3_ACCOUNT_ID ? 'S3' : 'Local disk';
+  logger.log(`Storage backend: ${storageBackend}`);
 }
 
 bootstrap();

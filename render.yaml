@@ -35,7 +35,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://study-rpg.onrender.com
+        value: https://study-rpg-frontend.onrender.com
       - key: OPENROUTER_API_KEY
         sync: false
       - key: GROQ_API_KEY
@@ -44,6 +44,20 @@ services:
         sync: false
       - key: NAVY_API_KEY
         sync: false
+      # Blomp object storage (S3-compatible, free tier available)
+      # Get credentials from https://www.blomp.com
+      - key: BLOMP_ACCOUNT_ID
+        sync: false
+      - key: BLOMP_ACCESS_KEY_ID
+        sync: false
+      - key: BLOMP_SECRET_ACCESS_KEY
+        sync: false
+      - key: BLOMP_BUCKET_NAME
+        sync: false
+      - key: BLOMP_PUBLIC_URL
+        sync: false
+      - key: BLOMP_AUTH_URL
+        value: https://authenticate.blomp.com
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
 

@@ -30,7 +30,7 @@ export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
   @Post('upload/image')
-  @ApiOperation({ summary: 'Upload an image to R2 storage' })
+  @ApiOperation({ summary: 'Upload an image to object storage' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

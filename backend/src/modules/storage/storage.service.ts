@@ -21,7 +21,7 @@ export interface FileInfo {
   contentType?: string;
 }
 
-type StorageBackend = 'r2' | 'local';
+type StorageBackend = 'blomp' | 'r2' | 's3' | 'local';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -37,15 +37,21 @@ export class StorageService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    const accountId = this.configService.get<string>('R2_ACCOUNT_ID') || this.configService.get<string>('S3_ACCOUNT_ID');
-    const accessKeyId = this.configService.get<string>('R2_ACCESS_KEY_ID') || this.configService.get<string>('S3_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('R2_SECRET_ACCESS_KEY') || this.configService.get<string>('S3_SECRET_ACCESS_KEY');
-    const endpoint = this.configService.get<string>('R2_ENDPOINT') || this.configService.get<string>('S3_ENDPOINT');
-    this.bucket = this.configService.get<string>('R2_BUCKET_NAME') || this.configService.get<string>('S3_BUCKET_NAME', 'uploads');
-    this.publicUrl = this.configService.get<string>('R2_PUBLIC_URL') || this.configService.get<string>('S3_PUBLIC_URL', '');
+    const accountId = this.configService.get<string>('BLOMP_ACCOUNT_ID') || this.configService.get<string>('R2_ACCOUNT_ID') || this.configService.get<string>('S3_ACCOUNT_ID');
+    const accessKeyId = this.configService.get<string>('BLOMP_ACCESS_KEY_ID') || this.configService.get<string>('R2_ACCESS_KEY_ID') || this.configService.get<string>('S3_ACCESS_KEY_ID');
+    const secretAccessKey = this.configService.get<string>('BLOMP_SECRET_ACCESS_KEY') || this.configService.get<string>('R2_SECRET_ACCESS_KEY') || this.configService.get<string>('S3_SECRET_ACCESS_KEY');
+    const endpoint = this.configService.get<string>('BLOMP_ENDPOINT') || this.configService.get<string>('R2_ENDPOINT') || this.configService.get<string>('S3_ENDPOINT');
+    this.bucket = this.configService.get<string>('BLOMP_BUCKET_NAME') || this.configService.get<string>('R2_BUCKET_NAME') || this.configService.get<string>('S3_BUCKET_NAME', 'uploads');
+    this.publicUrl = this.configService.get<string>('BLOMP_PUBLIC_URL') || this.configService.get<string>('R2_PUBLIC_URL') || this.configService.get<string>('S3_PUBLIC_URL', '');
 
     if (accountId && accessKeyId && secretAccessKey && endpoint) {
-      this.backend = 'r2';
+      if (this.configService.get<string>('BLOMP_ACCOUNT_ID')) {
+        this.backend = 'blomp';
+      } else if (this.configService.get<string>('R2_ACCOUNT_ID')) {
+        this.backend = 'r2';
+      } else {
+        this.backend = 's3';
+      }
       this.client = new S3Client({
         region: 'auto',
         endpoint: endpoint,
@@ -54,7 +60,7 @@ export class StorageService implements OnModuleInit {
           secretAccessKey: secretAccessKey,
         },
       });
-      this.logger.log(`Storage initialized: R2 (${endpoint}), Bucket: ${this.bucket}`);
+      this.logger.log(`Storage initialized: ${this.backend.toUpperCase()} (${endpoint}), Bucket: ${this.bucket}`);
     } else {
       this.backend = 'local';
       if (!fs.existsSync(this.uploadsDir)) {
@@ -77,15 +83,15 @@ export class StorageService implements OnModuleInit {
   async upload(file: Buffer | Readable, filename: string, options?: UploadOptions): Promise<{ key: string; url: string }> {
     const key = this.generateKey(filename, options?.folder);
 
-    if (this.backend === 'r2') {
-      return this.uploadToR2(file, key, options);
+    if (this.backend !== 'local') {
+      return this.uploadToRemote(file, key, options);
     }
 
     return this.uploadToLocal(file, key, options);
   }
 
-  private async uploadToR2(file: Buffer | Readable, key: string, options?: UploadOptions): Promise<{ key: string; url: string }> {
-    if (!this.client) throw new Error('R2 client not initialized');
+  private async uploadToRemote(file: Buffer | Readable, key: string, options?: UploadOptions): Promise<{ key: string; url: string }> {
+    if (!this.client) throw new Error('Storage client not initialized');
 
     if (file instanceof Buffer) {
       await this.client.send(
@@ -113,7 +119,7 @@ export class StorageService implements OnModuleInit {
     }
 
     const url = this.publicUrl ? `${this.publicUrl}/${key}` : key;
-    this.logger.debug(`File uploaded to R2 - Key: ${key}, Public URL: ${url}`);
+    this.logger.debug(`File uploaded to ${this.backend} - Key: ${key}, Public URL: ${url}`);
 
     return { key, url };
   }
@@ -144,7 +150,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async uploadWithKey(file: Buffer, key: string, options?: Omit<UploadOptions, 'folder'>): Promise<{ key: string; url: string }> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       await this.client!.send(
         new PutObjectCommand({
           Bucket: this.bucket,
@@ -170,7 +176,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async download(key: string): Promise<Buffer> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       const response = await this.client!.send(
         new GetObjectCommand({
           Bucket: this.bucket,
@@ -196,7 +202,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async getStream(key: string): Promise<Readable> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       const response = await this.client!.send(
         new GetObjectCommand({
           Bucket: this.bucket,
@@ -214,7 +220,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async delete(key: string): Promise<void> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       await this.client!.send(
         new DeleteObjectCommand({
           Bucket: this.bucket,
@@ -238,7 +244,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async exists(key: string): Promise<boolean> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       try {
         await this.client!.send(
           new HeadObjectCommand({
@@ -256,7 +262,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async getInfo(key: string): Promise<FileInfo | null> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       try {
         const response = await this.client!.send(
           new HeadObjectCommand({
@@ -290,7 +296,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async list(prefix?: string, maxKeys = 1000): Promise<FileInfo[]> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       const response = await this.client!.send(
         new ListObjectsV2Command({
           Bucket: this.bucket,
@@ -338,7 +344,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async copy(sourceKey: string, destinationKey: string): Promise<void> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       await this.client!.send(
         new CopyObjectCommand({
           Bucket: this.bucket,
@@ -369,7 +375,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async getSignedUploadUrl(key: string, contentType: string, expiresIn = 3600): Promise<string> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -383,7 +389,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async getSignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -396,7 +402,7 @@ export class StorageService implements OnModuleInit {
   }
 
   getPublicUrl(key: string): string {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       return this.publicUrl ? `${this.publicUrl}/${key}` : key;
     }
 
@@ -404,7 +410,7 @@ export class StorageService implements OnModuleInit {
   }
 
   extractKeyFromUrl(url: string): string {
-    if (this.backend === 'r2' && this.publicUrl && url.startsWith(this.publicUrl)) {
+    if (this.backend !== 'local' && this.publicUrl && url.startsWith(this.publicUrl)) {
       return url.replace(`${this.publicUrl}/`, '');
     }
 
@@ -421,7 +427,7 @@ export class StorageService implements OnModuleInit {
   }
 
   async healthCheck(): Promise<boolean> {
-    if (this.backend === 'r2') {
+    if (this.backend !== 'local') {
       try {
         await this.client!.send(
           new ListObjectsV2Command({
