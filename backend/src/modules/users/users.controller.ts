@@ -117,7 +117,7 @@ export class UsersController {
   async getUserById(@Param('id') id: string): Promise<Partial<UserResponseDto>> {
     const user = await this.usersService.findById(id);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
     return {
       id: user.id,

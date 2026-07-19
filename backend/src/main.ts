@@ -6,6 +6,8 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { AuthService } from './modules/auth/auth.service';
 import * as bodyParser from 'body-parser';
+import { join } from 'path';
+import { createReadStream } from 'fs';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -16,20 +18,24 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
+  // Serve uploaded files statically
+  const uploadsDir = join(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
+
   const configService = app.get(ConfigService);
 
   // API prefix — empty means routes like /auth/login, /users/me, etc.
   const apiPrefix = configService.get<string>('API_PREFIX', '');
   app.setGlobalPrefix(apiPrefix);
 
-  // CORS — allow the configured Cloudflare Pages origin (and any extra comma-separated origins)
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+  // CORS — allow the configured frontend origin(s)
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '');
   const allowedOrigins = corsOrigin
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
   app.enableCors({
-    origin: allowedOrigins.length ? allowedOrigins : '*',
+    origin: allowedOrigins.length ? allowedOrigins : false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     credentials: true,
@@ -53,8 +59,8 @@ async function bootstrap() {
 
   // Swagger Documentation
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Studyield API')
-    .setDescription('AI-powered learning platform API')
+    .setTitle('Study RPG API')
+    .setDescription('CBSE-aligned study platform with RPG mechanics API')
     .setVersion('1.0.0')
     .addBearerAuth()
     .addTag('Health', 'Health check endpoints')
@@ -99,9 +105,10 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3010);
   await app.listen(port);
 
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  logger.log(`📚 Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`);
-  logger.log(`🔌 WebSocket server ready`);
+  logger.log(`Application is running on: http://localhost:${port}`);
+  logger.log(`Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`);
+  logger.log(`WebSocket server ready`);
+  logger.log(`Storage backend: ${process.env.R2_ACCOUNT_ID ? 'R2' : 'Local disk'}`);
 }
 
 bootstrap();

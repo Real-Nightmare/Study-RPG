@@ -1,172 +1,168 @@
 # Study RPG - Deployment Guide
 
-## Architecture
+This project deploys to [Render](https://render.com) using the infrastructure-as-code
+file `render.yaml` at the repository root. It provisions everything needed:
+a PostgreSQL database (with the `pgvector` extension), a Redis instance, the NestJS
+backend web service, and the Vite static frontend.
 
-```
-Frontend (Render Static) → Backend (Render NestJS) → Database (Render PostgreSQL)
-```
+> Older notes in this repo referenced Neon / Cloudflare Pages / MonkeysCloud. Those
+> are no longer used — `render.yaml` is the single source of truth for deployment.
 
-## Step 1: Deploy with Render Blueprint
+## Quick Start (Render Blueprint)
 
-1. Go to [render.com](https://render.com) → **New +** → **Blueprint**
-2. Connect your GitHub repo: `Real-Nightmare/Study-RPG`
-3. Select `render.yaml` from the root
-4. Render auto-creates all services:
-   - `study-rpg-backend` — NestJS API
-   - `study-rpg-frontend` — React static site
-   - `study-rpg-db` — PostgreSQL
-   - `study-rpg-redis` — Redis cache
-5. Add environment variables:
-   - `OPENROUTER_API_KEY` — your OpenRouter key
-   - `GROQ_API_KEY` — your Groq key
-   - `TOGETHER_API_KEY` — your Together AI key
-   - `NAVY_API_KEY` — your NAVY AI key
-6. Click **Create** → wait for builds
-7. Save URLs:
-   - Frontend: `https://study-rpg-frontend.onrender.com`
-   - Backend: `https://study-rpg-backend.onrender.com`
+1. In Render, click **New** → **Blueprint** and connect this GitHub repository.
+2. Render reads `render.yaml` and creates four services:
+   - `study-rpg-db` — PostgreSQL (database name `studyrpg`), free plan
+   - `study-rpg-redis` — Redis, free plan (maxmemory policy `allkeys-lru`)
+   - `study-rpg-backend` — NestJS web service (`rootDir: backend`)
+   - `study-rpg-frontend` — static site served from `frontend/dist`
+3. Before the first deploy, open each service's **Environment** tab and set the
+   `sync: false` secrets (Render does NOT store these for you):
+   - `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `TOGETHER_API_KEY`, `NAVY_API_KEY`
+   - `ADMIN_DEFAULT_PASSWORD` — **set a strong, unique password**. Never reuse the
+     example value that previously appeared in this file.
+4. Deploy. The backend `startCommand` is `npm run start:prod`, and `npm run migrate`
+   runs automatically on first boot (see below).
 
-## Step 2: Update Backend CORS
+## Database Migrations
 
-1. Go to Render → `study-rpg-backend` → Environment
-2. Update `CORS_ORIGIN` to your frontend URL:
-   ```
-   CORS_ORIGIN=https://study-rpg-frontend.onrender.com
-   ```
-3. Save → Render auto-redeploys
+Migrations live in `database/migrations/` and are applied in filename order by
+`backend/scripts/migrate.js` (the `npm run migrate` script). The script:
 
-## Step 3: Initialize Database
+- Creates a `migrations` bookkeeping table and skips any file already recorded.
+- Reads migrations from `../database/migrations` (relative to the backend dir),
+  falling back to `backend/migrations` for backward compatibility.
+- Wraps each file in a transaction; a failed migration is rolled back.
+- Seeds the default admin account on first run (idempotent — skips if it exists).
 
-1. In Render, go to `study-rpg-db` → **Connect**
-2. Open **Query** tab
-3. Run migrations in order from `database/migrations/`:
-   - `001_initial.sql`
-   - `002_add_pgvector.sql`
-   - `003_add_audit_logs.sql`
-   - `004_add_llm_providers.sql`
-   - `005_rpg_core.sql`
-   - `006_rpg_battle.sql`
-   - `007_rpg_cards.sql`
-   - `008_rpg_battlepass.sql`
-   - `009_rpg_shops.sql`
-   - `010_rpg_special.sql`
-   - `011_teach_back.sql`
-4. Run seeds from `database/seed/`:
-   - `seed_admin.sql`
-   - `seed_game_content.sql`
+Order: `001_initial` → `002_add_pgvector` → `003_add_audit_logs` →
+`004_add_llm_providers` → `005_rpg_core` → `006_rpg_battle` → `007_rpg_cards` →
+`008_rpg_battlepass` → `009_rpg_shops` → `010_rpg_special` → `011_teach_back` →
+`012_legacy_feature_tables`.
 
-Or use the backend script locally:
+To run migrations manually (local or CI):
+
 ```bash
-DATABASE_URL=<your-render-db-url> node backend/scripts/migrate.js
-DATABASE_URL=<your-render-db-url> node backend/scripts/seed-admin.js
+cd backend
+DATABASE_URL=<postgres-connection-string> npm run migrate
 ```
 
-## Step 4: Verify Deployment
+## Seed Data
 
-1. Visit your Render frontend URL
-2. Open browser console — should see no CORS errors
-3. Try logging in with:
-   - **Username**: `Nightmare`
-   - **Password**: `N1GHTMAREISGoD@123`
-4. Test RPG features:
-   - Battle Arena
-   - Cards
-   - Areas
-   - Shop
-   - Revision Centre
-
-## Folder Structure
-
-```
-study-rpg/
-├── frontend/          # → Deploy to Render Static
-│   ├── src/
-│   ├── public/
-│   ├── functions/
-│   │   └── api/[[path]].ts   # Pages Functions proxy (not used on Render)
-│   ├── package.json
-│   └── vite.config.ts
-│
-├── backend/           # → Deploy to Render Web Service
-│   ├── src/
-│   │   ├── modules/
-│   │   ├── common/
-│   │   └── main.ts
-│   ├── migrations/
-│   ├── scripts/
-│   ├── package.json
-│   └── Dockerfile
-│
-├── database/          # Run on Render PostgreSQL
-│   ├── migrations/
-│   │   ├── 001_initial.sql
-│   │   ├── 002_add_pgvector.sql
-│   │   └── ...
-│   └── seed/
-│       ├── seed_admin.sql
-│       └── seed_game_content.sql
-│
-└── render.yaml        # Render Blueprint (frontend + backend + DB + Redis)
-```
+- `database/seed/seed_game_content.sql` — worlds, areas, monsters, cards, shops,
+  cosmetics, battlepass season/tiers, and event missions. All inserts use
+  `ON CONFLICT DO NOTHING`, so the script is safe to run multiple times.
+  Apply with: `psql "$DATABASE_URL" -f database/seed/seed_game_content.sql`
+- `database/seed/seed_admin.sql` — reference only. The real admin account is created
+  with a bcrypt-hashed password by `backend/scripts/seed-admin.js`, which runs
+  automatically during `npm run migrate`. (The SQL file is also idempotent.)
+- Admin credentials:
+  - **Username**: `Nightmare`
+  - **Password**: the value you set for `ADMIN_DEFAULT_PASSWORD`
 
 ## Environment Variables
 
-### Frontend (Render Static)
+### Backend (`study-rpg-backend`)
+
+| Key | Source | Notes |
+|-----|--------|-------|
+| `NODE_ENV` | `production` | |
+| `API_PREFIX` | `""` | |
+| `DATABASE_URL` | `fromDatabase: study-rpg-db` | injected by Render; do not hardcode |
+| `REDIS_URL` | `fromService: study-rpg-redis` | injected by Render; do not hardcode |
+| `JWT_SECRET` | auto-generated | |
+| `CORS_ORIGIN` | frontend URL | e.g. `https://study-rpg-frontend.onrender.com` |
+| `OPENROUTER_API_KEY` | `sync: false` | set in dashboard |
+| `GROQ_API_KEY` | `sync: false` | set in dashboard |
+| `TOGETHER_API_KEY` | `sync: false` | set in dashboard |
+| `NAVY_API_KEY` | `sync: false` | set in dashboard |
+| `ADMIN_DEFAULT_PASSWORD` | `sync: false` | set a strong unique value |
+
+> `DATABASE_URL` and `REDIS_URL` are provided by Render's service linking — never
+> commit real credentials. There are no hardcoded credentials in `render.yaml`.
+
+### Frontend (`study-rpg-frontend`)
+
+| Key | Value |
+|-----|-------|
+| `VITE_API_URL` | `https://study-rpg-backend.onrender.com` |
+| `VITE_WS_URL` | `https://study-rpg-backend.onrender.com` |
+| `BACKEND_URL` | `https://study-rpg-backend.onrender.com` |
+
+## Verify Deployment
+
+1. Visit your frontend URL (e.g. `https://study-rpg-frontend.onrender.com`).
+2. Check the backend health endpoint: `https://study-rpg-backend.onrender.com/health`
+   — the `healthCheckPath` in `render.yaml` is `/health`.
+3. Log in as the admin user (`Nightmare` / your `ADMIN_DEFAULT_PASSWORD`).
+4. Exercise RPG features (Battle Arena, Cards, Areas, Shop, Revision Centre).
+5. In the browser console, confirm there are no CORS errors.
+
+## Local Development
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev   # http://localhost:5173
 ```
-VITE_API_URL=https://study-rpg-backend.onrender.com
-VITE_WS_URL=https://study-rpg-backend.onrender.com
-BACKEND_URL=https://study-rpg-backend.onrender.com
+
+### Backend
+```bash
+cd backend
+npm install
+npm run start:dev   # http://localhost:3000
 ```
 
-### Backend (Render Web Service)
-```
-NODE_ENV=production
-DATABASE_URL=<from Render PostgreSQL>
-REDIS_URL=<from Render Redis>
-JWT_SECRET=<auto-generated or custom>
-CORS_ORIGIN=https://study-rpg-frontend.onrender.com
-OPENROUTER_API_KEY=<key>
-GROQ_API_KEY=<key>
-TOGETHER_API_KEY=<key>
-NAVY_API_KEY=<key>
-ADMIN_DEFAULT_PASSWORD=N1GHTMAREISGoD@123
+### Database
+```bash
+# Apply all migrations (requires a running PostgreSQL with pgvector)
+DATABASE_URL=<postgres-connection-string> npm run migrate
+
+# Seed game content
+psql "$DATABASE_URL" -f database/seed/seed_game_content.sql
 ```
 
-## Tech Stack
-
-| Layer | Technology | Host |
-|-------|-----------|------|
-| Frontend | React 19 + Vite + Tailwind | Render Static |
-| Backend | NestJS 10 + Socket.io | Render Web Service |
-| Database | PostgreSQL + pgvector | Render |
-| Cache | Redis | Render |
-| AI/LLM | OpenRouter + Groq + Together + NAVY | External APIs |
-
-## Admin Account
-
-- **Username**: `Nightmare`
-- **Password**: `N1GHTMAREISGoD@123`
-- **Role**: Admin (full access)
+A full local stack (Postgres, Redis, Qdrant, ClickHouse) is also available via
+Docker Compose: `docker compose --env-file .env.docker up`.
 
 ## Troubleshooting
 
 ### CORS Errors
-- Ensure `CORS_ORIGIN` in backend matches frontend Render URL exactly
-- Update in Render dashboard and redeploy backend
+- Ensure `CORS_ORIGIN` in the backend matches your frontend URL exactly, then redeploy.
 
-### Database Connection
-- Verify `DATABASE_URL` is set in Render backend env vars
-- Run migrations on Render PostgreSQL
-- Check Render logs for connection errors
+### Database Connection Errors
+- Verify `DATABASE_URL` is injected from `study-rpg-db`.
+- Ensure the `pgvector` extension is available (the `002_add_pgvector` migration
+  runs `CREATE EXTENSION IF NOT EXISTS vector;`).
+- Check the migrations bookkeeping table — a previously failed run may have left a
+  file partially applied; re-running `npm run migrate` resumes from the last success.
 
 ### WebSocket Not Connecting
-- Verify `VITE_WS_URL` points to Render backend URL
-- Check backend logs for Socket.io errors
+- Verify `VITE_WS_URL` points at the backend URL.
+- Confirm WebSocket CORS is configured in the backend.
 
 ### Cold Starts
-- Render free tier sleeps after 15 min
-- First request takes ~10s to wake up
-- Normal behavior for free tier
+- Render free tier services spin down after inactivity; the first request wakes them
+  up and may take a few seconds.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19 + Vite + Tailwind CSS |
+| Backend | NestJS 10 + Socket.io |
+| Database | PostgreSQL 16 + pgvector (Render) |
+| Cache | Redis (Render) |
+| AI/LLM | OpenRouter + Groq + Together AI + NAVY AI |
+| Hosting | Render (Blueprint / `render.yaml`) |
+
+## Admin Account
+
+- **Username**: `Nightmare`
+- **Name**: `Joshua Martin`
+- **Password**: value of `ADMIN_DEFAULT_PASSWORD` (set as a Render secret)
+- **Role**: Admin (full access)
 
 ## License
 

@@ -23,6 +23,9 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
+# Canonical SQL migrations live in <repo-root>/database/migrations
+COPY --from=builder /database/migrations ./database/migrations
+# Legacy fallback location (kept for backward compatibility)
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts ./scripts
 

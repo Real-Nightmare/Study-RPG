@@ -516,17 +516,16 @@ function JoinOrCreate() {
   const [mode, setMode] = useState<'choose' | 'join'>(urlCode ? 'join' : hasStudySet ? 'choose' : 'join');
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (urlCode) setJoinCode(urlCode.toUpperCase());
   }, [urlCode]);
 
   useEffect(() => {
     if (!isLoading && user) connect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, user]);
 
   useEffect(() => {
     if (phase === 'lobby') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsCreating(false);
       setIsJoining(false);
     }
@@ -647,6 +646,7 @@ export function LiveQuizPage() {
 
   useEffect(() => {
     return () => disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

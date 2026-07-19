@@ -1,11 +1,7 @@
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3010',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 30000,
 };
-
-if (!import.meta.env.VITE_API_URL && typeof window !== 'undefined') {
-  console.warn('[Study RPG] VITE_API_URL is not set. API calls will fail in production.');
-}
 
 export const WS_URL = import.meta.env.VITE_WS_URL || '';
 
@@ -105,6 +101,7 @@ export const ENDPOINTS = {
     get: (id: string) => `/exam-clones/${id}`,
     generate: (id: string) => `/exam-clones/${id}/generate`,
     questions: (id: string) => `/exam-clones/${id}/questions`,
+    // Analytics & Practice
     analytics: (id: string) => `/exam-clones/${id}/analytics`,
     submitAttempt: (id: string) => `/exam-clones/${id}/attempt`,
     explanation: (questionId: string) => `/exam-clones/questions/${questionId}/explanation`,
@@ -113,10 +110,13 @@ export const ENDPOINTS = {
     adaptiveQuestions: (id: string) => `/exam-clones/${id}/adaptive-questions`,
     templates: '/exam-clones/templates/list',
     generateFromTemplate: (id: string) => `/exam-clones/${id}/generate-from-template`,
+    // Bookmarks
     bookmarks: '/exam-clones/bookmarks',
     bookmark: (questionId: string) => `/exam-clones/bookmarks/${questionId}`,
+    // Badges
     badges: '/exam-clones/badges',
     userBadges: '/exam-clones/badges/user',
+    // Leaderboard
     leaderboard: '/exam-clones/leaderboard',
   },
   // Problem Solver
@@ -130,6 +130,7 @@ export const ENDPOINTS = {
     similar: (id: string) => `/problem-solver/${id}/similar`,
     chat: (id: string) => `/problem-solver/${id}/chat`,
     chatMessages: (id: string) => `/problem-solver/${id}/chat/messages`,
+    // New features
     bookmark: (id: string) => `/problem-solver/${id}/bookmark`,
     bookmarkStatus: (id: string) => `/problem-solver/${id}/bookmark/status`,
     bookmarks: '/problem-solver/bookmarks',
@@ -145,6 +146,7 @@ export const ENDPOINTS = {
     narration: (id: string) => `/problem-solver/${id}/narration`,
     batchExtract: '/problem-solver/batch/extract',
   },
+
   // Teach Back
   teachBack: {
     list: '/teach-back',
@@ -203,6 +205,7 @@ export const ENDPOINTS = {
     completeStep: (id: string, stepId: string) => `/learning-paths/${id}/steps/${stepId}/complete`,
     delete: (id: string) => `/learning-paths/${id}`,
   },
+  // RPG - Study RPG Layer
   // Notes
   notes: {
     list: (studySetId: string) => `/study-sets/${studySetId}/notes`,
@@ -214,11 +217,13 @@ export const ENDPOINTS = {
   },
   // RPG - Study RPG Layer
   rpg: {
+    // Currency / SLC
     slc: {
       wallet: '/rpg/slc/wallet',
       transactions: '/rpg/slc/transactions',
       revisionFunds: '/rpg/slc/revision-funds',
     },
+    // Battle
     battle: {
       start: '/rpg/battle/start',
       playCard: '/rpg/battle/play-card',
@@ -226,6 +231,7 @@ export const ENDPOINTS = {
       end: '/rpg/battle/end',
       state: (battleId: string) => `/rpg/battle/${battleId}`,
     },
+    // Cards
     cards: {
       all: '/rpg/cards',
       user: '/rpg/cards/user',
@@ -233,17 +239,20 @@ export const ENDPOINTS = {
       equip: '/rpg/cards/equip',
       marketplace: '/rpg/cards/marketplace',
     },
+    // Areas / Worlds
     areas: {
       worlds: '/rpg/areas/worlds',
       areas: '/rpg/areas',
       unlock: (areaId: string) => `/rpg/areas/${areaId}/unlock`,
       completeSubsection: (areaId: string, subsectionId: string) => `/rpg/areas/${areaId}/subsections/${subsectionId}/complete`,
     },
+    // Battlepass
     battlepass: {
       currentSeason: '/rpg/battlepass/current-season',
       progress: '/rpg/battlepass/progress',
       claimReward: (tierId: string) => `/rpg/battlepass/claim/${tierId}`,
     },
+    // Shops
     shop: {
       abilities: '/rpg/shop/abilities',
       items: '/rpg/shop/items',
@@ -252,18 +261,21 @@ export const ENDPOINTS = {
       buyItem: '/rpg/shop/items/buy',
       buyCosmetic: '/rpg/shop/cosmetics/buy',
     },
+    // Revision Centre
     revisionCentre: {
       apply: '/rpg/revision-centre/apply',
       quiz: '/rpg/revision-centre/quiz',
       submit: '/rpg/revision-centre/submit',
       results: (sessionId: string) => `/rpg/revision-centre/results/${sessionId}`,
     },
+    // Programmes
     programmes: {
       list: '/rpg/programmes',
       create: '/rpg/programmes',
       approve: (id: string) => `/rpg/programmes/${id}/approve`,
       reject: (id: string) => `/rpg/programmes/${id}/reject`,
     },
+    // CBT
     cbt: {
       upcoming: '/rpg/cbt/upcoming',
       join: '/rpg/cbt/join',

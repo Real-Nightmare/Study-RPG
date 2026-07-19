@@ -104,34 +104,41 @@ export class CardsService {
 
     const price = parseFloat(String(card.price_slc || 0));
 
-    await this.slcService.deductSLC(userId, {
-      amount: price,
-      reason: 'card_purchase',
-      description: `Purchased card: ${card.name}`,
-    });
+    await this.db.transaction(async (client) => {
+      await this.slcService.deductSLCTx(
+        userId,
+        {
+          amount: price,
+          reason: 'card_purchase',
+          description: `Purchased card: ${card.name}`,
+        },
+        client,
+      );
 
-    const existing = await this.db.queryOne<Record<string, unknown>>(
-      'SELECT * FROM user_cards WHERE user_id = $1 AND card_id = $2',
-      [userId, cardId],
-    );
-
-    if (existing) {
-      await this.db.query(
-        'UPDATE user_cards SET quantity = quantity + 1 WHERE user_id = $1 AND card_id = $2',
+      const existingRows = await client.query(
+        'SELECT * FROM user_cards WHERE user_id = $1 AND card_id = $2',
         [userId, cardId],
       );
-    } else {
-      await this.db.query(
-        'INSERT INTO user_cards (id, user_id, card_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
-        [uuidv4(), userId, cardId],
-      );
-    }
+      const existing = existingRows.rows[0];
 
-    if (stock !== null && stock !== undefined && stock !== -1) {
-      await this.db.query('UPDATE card_marketplace SET stock = stock - 1 WHERE card_id = $1', [
-        cardId,
-      ]);
-    }
+      if (existing) {
+        await client.query(
+          'UPDATE user_cards SET quantity = quantity + 1 WHERE user_id = $1 AND card_id = $2',
+          [userId, cardId],
+        );
+      } else {
+        await client.query(
+          'INSERT INTO user_cards (id, user_id, card_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
+          [uuidv4(), userId, cardId],
+        );
+      }
+
+      if (stock !== null && stock !== undefined && stock !== -1) {
+        await client.query('UPDATE card_marketplace SET stock = stock - 1 WHERE card_id = $1', [
+          cardId,
+        ]);
+      }
+    });
 
     this.logger.log(`User ${userId} purchased card ${cardId}`);
 

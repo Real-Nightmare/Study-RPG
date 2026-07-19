@@ -764,7 +764,6 @@ export function QuizPage() {
         setPhase('configure');
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [studySetId]
   );
 
@@ -812,7 +811,7 @@ export function QuizPage() {
         }
       }
     },
-    [currentIndex, questions, results, startTime, quizId]
+    [currentIndex, questions, results, startTime, quizId, addXP]
   );
 
   const handleRetry = () => {

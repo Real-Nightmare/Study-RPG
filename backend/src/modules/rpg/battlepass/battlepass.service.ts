@@ -153,37 +153,45 @@ export class BattlepassService {
 
     const rewards =
       typeof tier.rewards === 'string' ? JSON.parse(tier.rewards) : tier.rewards || [];
-    for (const reward of rewards) {
-      if (reward.type === 'slc') {
-        await this.slcService.addSLC(userId, {
-          amount: reward.amount || 0,
-          source: 'battlepass',
-          description: `Battlepass tier ${tier.tier_number} reward`,
-        });
-      } else if (reward.type === 'card' && reward.cardId) {
-        const existing = await this.db.queryOne(
-          'SELECT * FROM user_cards WHERE user_id = $1 AND card_id = $2',
-          [userId, reward.cardId],
-        );
-        if (existing) {
-          await this.db.query(
-            'UPDATE user_cards SET quantity = quantity + 1 WHERE user_id = $1 AND card_id = $2',
+
+    await this.db.transaction(async (client) => {
+      for (const reward of rewards) {
+        if (reward.type === 'slc') {
+          await this.slcService.addSLCTx(
+            userId,
+            {
+              amount: reward.amount || 0,
+              source: 'battlepass',
+              description: `Battlepass tier ${tier.tier_number} reward`,
+            },
+            client,
+          );
+        } else if (reward.type === 'card' && reward.cardId) {
+          const existingRows = await client.query(
+            'SELECT * FROM user_cards WHERE user_id = $1 AND card_id = $2',
             [userId, reward.cardId],
           );
-        } else {
-          await this.db.query(
-            'INSERT INTO user_cards (id, user_id, card_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
-            [uuidv4(), userId, reward.cardId],
-          );
+          const existing = existingRows.rows[0];
+          if (existing) {
+            await client.query(
+              'UPDATE user_cards SET quantity = quantity + 1 WHERE user_id = $1 AND card_id = $2',
+              [userId, reward.cardId],
+            );
+          } else {
+            await client.query(
+              'INSERT INTO user_cards (id, user_id, card_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
+              [uuidv4(), userId, reward.cardId],
+            );
+          }
         }
       }
-    }
 
-    claimedRewards.push({ tierId, claimedAt: new Date() });
-    await this.db.query(
-      'UPDATE user_battlepass SET claimed_rewards = $1, updated_at = NOW() WHERE id = $2',
-      [JSON.stringify(claimedRewards), userBP.id],
-    );
+      claimedRewards.push({ tierId, claimedAt: new Date() });
+      await client.query(
+        'UPDATE user_battlepass SET claimed_rewards = $1, updated_at = NOW() WHERE id = $2',
+        [JSON.stringify(claimedRewards), userBP.id],
+      );
+    });
 
     return { claimed: true, reward: rewards[0] || {} };
   }

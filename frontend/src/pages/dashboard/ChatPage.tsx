@@ -235,6 +235,7 @@ export function ChatPage() {
     if (conversationIdParam) {
       loadConversation(conversationIdParam);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationIdParam]);
 
   const loadConversations = async () => {

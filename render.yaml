@@ -1,3 +1,12 @@
+# =============================================================================
+# Study RPG — Render Blueprint (infrastructure-as-code)
+# -----------------------------------------------------------------------------
+# This is the SINGLE SOURCE OF TRUTH for production infrastructure.
+# Hosting is Render-only (no Cloudflare Pages / MonkeysCloud / Neon).
+# Deploy via Render Dashboard: New -> Blueprint -> connect this repo.
+# See DEPLOY.md for full step-by-step instructions.
+# =============================================================================
+
 services:
   # Backend API (NestJS)
   - type: web
@@ -8,6 +17,7 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /health
+    healthCheckTimeout: 120
     envVars:
       - key: NODE_ENV
         value: production
@@ -35,7 +45,7 @@ services:
       - key: NAVY_API_KEY
         sync: false
       - key: ADMIN_DEFAULT_PASSWORD
-        value: N1GHTMAREISGoD@123
+        sync: false
 
   # Frontend (Static site)
   - type: static
@@ -67,3 +77,8 @@ services:
     name: study-rpg-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+
+  # Note: Render free tier automatically sleeps after 15 minutes of inactivity.
+  # To prevent sleep, use an external uptime monitor (e.g., UptimeRobot) to ping
+  # https://study-rpg-backend.onrender.com/health every 10 minutes.
+  # The health endpoint performs a quick DB and Redis ping.

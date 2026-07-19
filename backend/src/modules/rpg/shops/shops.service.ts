@@ -89,28 +89,36 @@ export class ShopsService {
     if (!ability) throw new NotFoundException('Ability not found');
 
     const price = parseFloat(String(ability.price_slc || 0));
-    await this.slcService.deductSLC(userId, {
-      amount: price,
-      reason: 'ability_purchase',
-      description: `Purchased ability: ${ability.name}`,
-    });
 
-    const existing = await this.db.queryOne(
-      'SELECT * FROM user_abilities WHERE user_id = $1 AND ability_id = $2',
-      [userId, abilityId],
-    );
+    await this.db.transaction(async (client) => {
+      await this.slcService.deductSLCTx(
+        userId,
+        {
+          amount: price,
+          reason: 'ability_purchase',
+          description: `Purchased ability: ${ability.name}`,
+        },
+        client,
+      );
 
-    if (existing) {
-      await this.db.query(
-        'UPDATE user_abilities SET quantity = quantity + 1 WHERE user_id = $1 AND ability_id = $2',
+      const existingRows = await client.query(
+        'SELECT * FROM user_abilities WHERE user_id = $1 AND ability_id = $2',
         [userId, abilityId],
       );
-    } else {
-      await this.db.query(
-        'INSERT INTO user_abilities (id, user_id, ability_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
-        [uuidv4(), userId, abilityId],
-      );
-    }
+      const existing = existingRows.rows[0];
+
+      if (existing) {
+        await client.query(
+          'UPDATE user_abilities SET quantity = quantity + 1 WHERE user_id = $1 AND ability_id = $2',
+          [userId, abilityId],
+        );
+      } else {
+        await client.query(
+          'INSERT INTO user_abilities (id, user_id, ability_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
+          [uuidv4(), userId, abilityId],
+        );
+      }
+    });
 
     this.logger.log(`User ${userId} purchased ability ${abilityId}`);
     return this.getUserAbilities(userId).then(
@@ -133,33 +141,42 @@ export class ShopsService {
     if (!item) throw new NotFoundException('Item not found');
 
     const price = parseFloat(String(item.price_slc || 0));
-    await this.slcService.deductSLC(userId, {
-      amount: price,
-      reason: 'item_purchase',
-      description: `Purchased item: ${item.name}`,
-    });
 
-    const existing = await this.db.queryOne(
-      'SELECT * FROM user_items WHERE user_id = $1 AND item_id = $2',
-      [userId, itemId],
-    );
+    await this.db.transaction(async (client) => {
+      await this.slcService.deductSLCTx(
+        userId,
+        {
+          amount: price,
+          reason: 'item_purchase',
+          description: `Purchased item: ${item.name}`,
+        },
+        client,
+      );
 
-    if (existing) {
-      const currentQty = parseInt(String(existing.quantity || 0), 10);
-      const maxStack = parseInt(String(item.max_stack || 10), 10);
-      if (currentQty >= maxStack) {
-        throw new BadRequestException('Item stack limit reached');
-      }
-      await this.db.query(
-        'UPDATE user_items SET quantity = quantity + 1 WHERE user_id = $1 AND item_id = $2',
+      const existingRows = await client.query(
+        'SELECT * FROM user_items WHERE user_id = $1 AND item_id = $2',
         [userId, itemId],
       );
-    } else {
-      await this.db.query(
-        'INSERT INTO user_items (id, user_id, item_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
-        [uuidv4(), userId, itemId],
-      );
-    }
+      const existing = existingRows.rows[0];
+
+      if (existing) {
+        const currentQty = parseInt(String(existing.quantity || 0), 10);
+        const maxStack = parseInt(String(item.max_stack || 10), 10);
+        if (currentQty >= maxStack) {
+          throw new BadRequestException('Item stack limit reached');
+        }
+
+        await client.query(
+          'UPDATE user_items SET quantity = quantity + 1 WHERE user_id = $1 AND item_id = $2',
+          [userId, itemId],
+        );
+      } else {
+        await client.query(
+          'INSERT INTO user_items (id, user_id, item_id, quantity, acquired_at) VALUES ($1, $2, $3, 1, NOW())',
+          [uuidv4(), userId, itemId],
+        );
+      }
+    });
 
     this.logger.log(`User ${userId} purchased item ${itemId}`);
     return this.getUserItems(userId).then((list) => list.find((i) => i.itemId === itemId)!);
@@ -180,25 +197,33 @@ export class ShopsService {
     if (!cosmetic) throw new NotFoundException('Cosmetic not found');
 
     const price = parseFloat(String(cosmetic.price_slc || 0));
-    await this.slcService.deductSLC(userId, {
-      amount: price,
-      reason: 'cosmetic_purchase',
-      description: `Purchased cosmetic: ${cosmetic.name}`,
+
+    await this.db.transaction(async (client) => {
+      await this.slcService.deductSLCTx(
+        userId,
+        {
+          amount: price,
+          reason: 'cosmetic_purchase',
+          description: `Purchased cosmetic: ${cosmetic.name}`,
+        },
+        client,
+      );
+
+      const existingRows = await client.query(
+        'SELECT * FROM user_cosmetics WHERE user_id = $1 AND cosmetic_id = $2',
+        [userId, cosmeticId],
+      );
+      const existing = existingRows.rows[0];
+
+      if (existing) {
+        throw new BadRequestException('Cosmetic already owned');
+      }
+
+      await client.query(
+        'INSERT INTO user_cosmetics (id, user_id, cosmetic_id, is_equipped, acquired_at) VALUES ($1, $2, $3, FALSE, NOW())',
+        [uuidv4(), userId, cosmeticId],
+      );
     });
-
-    const existing = await this.db.queryOne(
-      'SELECT * FROM user_cosmetics WHERE user_id = $1 AND cosmetic_id = $2',
-      [userId, cosmeticId],
-    );
-
-    if (existing) {
-      throw new BadRequestException('Cosmetic already owned');
-    }
-
-    await this.db.query(
-      'INSERT INTO user_cosmetics (id, user_id, cosmetic_id, is_equipped, acquired_at) VALUES ($1, $2, $3, FALSE, NOW())',
-      [uuidv4(), userId, cosmeticId],
-    );
 
     this.logger.log(`User ${userId} purchased cosmetic ${cosmeticId}`);
     return this.getUserCosmetics(userId).then(

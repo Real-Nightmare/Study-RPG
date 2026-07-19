@@ -128,6 +128,67 @@ export class SlcService {
     return this.mapWallet(result!);
   }
 
+  async addSLCTx(
+    userId: string,
+    dto: AddSLCDto,
+    client: { query: (sql: string, params?: any[]) => { rows: any[] } },
+  ): Promise<SlcWallet> {
+    const wallet = await this.getWallet(userId);
+    const newBalance = wallet.balance + dto.amount;
+    const newTotalEarned = wallet.totalEarned + dto.amount;
+
+    const result = await client.query(
+      `UPDATE slc_wallets SET balance = $1, total_earned = $2, updated_at = NOW() WHERE user_id = $3 RETURNING *`,
+      [newBalance, newTotalEarned, userId],
+    );
+
+    await client.query(
+      `INSERT INTO slc_transactions (id, user_id, amount, type, source, reference_id, description, balance_after, created_at)
+       VALUES ($1, $2, $3, 'credit', $4, $5, $6, $7, NOW())`,
+      [
+        uuidv4(),
+        userId,
+        dto.amount,
+        dto.source,
+        dto.referenceId || null,
+        dto.description || null,
+        newBalance,
+      ],
+    );
+
+    this.logger.log(`Added ${dto.amount} SLC to user ${userId} from ${dto.source}`);
+    return this.mapWallet(result.rows[0]!);
+  }
+
+  async deductSLCTx(
+    userId: string,
+    dto: DeductSLCDto,
+    client: { query: (sql: string, params?: any[]) => { rows: any[] } },
+  ): Promise<SlcWallet> {
+    const wallet = await this.getWallet(userId);
+
+    if (wallet.balance < dto.amount) {
+      throw new BadRequestException('Insufficient SLC balance');
+    }
+
+    const newBalance = wallet.balance - dto.amount;
+    const newTotalSpent = wallet.totalSpent + dto.amount;
+
+    const result = await client.query(
+      `UPDATE slc_wallets SET balance = $1, total_spent = $2, updated_at = NOW() WHERE user_id = $3 RETURNING *`,
+      [newBalance, newTotalSpent, userId],
+    );
+
+    await client.query(
+      `INSERT INTO slc_transactions (id, user_id, amount, type, source, description, balance_after, created_at)
+       VALUES ($1, $2, $3, 'debit', $4, $5, $6, NOW())`,
+      [uuidv4(), userId, dto.amount, dto.reason, dto.description || null, newBalance],
+    );
+
+    this.logger.log(`Deducted ${dto.amount} SLC from user ${userId} for ${dto.reason}`);
+    return this.mapWallet(result.rows[0]!);
+  }
+
   async getTransactionHistory(userId: string, limit = 50, offset = 0): Promise<SlcTransaction[]> {
     const rows = await this.db.queryMany<Record<string, unknown>>(
       `SELECT * FROM slc_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,

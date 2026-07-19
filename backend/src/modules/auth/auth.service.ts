@@ -37,10 +37,13 @@ export class AuthService {
   async seedAdmin(): Promise<void> {
     const adminUsername = this.configService.get<string>('ADMIN_USERNAME', 'Nightmare');
     const adminName = this.configService.get<string>('ADMIN_NAME', 'Joshua Martin');
-    const adminPassword = this.configService.get<string>(
-      'ADMIN_DEFAULT_PASSWORD',
-      'N1GHTMAREISGoD@123',
-    );
+    const adminPassword = this.configService.get<string>('ADMIN_DEFAULT_PASSWORD');
+    if (!adminPassword) {
+      this.logger.warn(
+        'ADMIN_DEFAULT_PASSWORD not set — skipping admin seed. Set it in .env to create the default admin.',
+      );
+      return;
+    }
 
     const existing = await this.usersService.findByUsername(adminUsername);
     if (existing) {
@@ -145,18 +148,22 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION', '7d'),
+        expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION', '15m'),
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '30d'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d'),
       }),
     ]);
+
+    const accessTtl = this.parseExpirationToSeconds(
+      this.configService.get<string>('JWT_ACCESS_EXPIRATION', '15m'),
+    );
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: 604800,
+      expiresIn: accessTtl,
     };
   }
 
@@ -169,6 +176,23 @@ export class AuthService {
       }
     } catch {
       // Token invalid, no need to blacklist
+    }
+  }
+
+  private parseExpirationToSeconds(expiration: string): number {
+    const unit = expiration.slice(-1);
+    const value = parseInt(expiration.slice(0, -1), 10);
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 3600;
+      case 'd':
+        return value * 86400;
+      default:
+        return 900;
     }
   }
 }

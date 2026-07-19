@@ -131,7 +131,8 @@ import { HealthController } from './health.controller';
     // Global Exception Filter
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
+      useFactory: (configService: ConfigService) => new HttpExceptionFilter(configService),
+      inject: [ConfigService],
     },
   ],
 })

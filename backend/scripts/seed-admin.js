@@ -20,7 +20,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'Nightmare';
 const ADMIN_NAME = process.env.ADMIN_NAME || 'Joshua Martin';
-const ADMIN_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'N1GHTMAREISGoD@123';
+const ADMIN_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || require('crypto').randomBytes(16).toString('hex');
 
 let pool;
 

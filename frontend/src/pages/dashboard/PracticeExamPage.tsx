@@ -107,7 +107,7 @@ export default function PracticeExamPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [examState, timeRemaining]);
+  }, [examState, timeRemaining]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startExam = () => {
     // Select questions

@@ -1,12 +1,16 @@
 -- Seed admin account
 -- Username: Nightmare
--- Password: N1GHTMAREISGoD@123
 -- Role: admin
--- NOTE: Use backend/scripts/seed-admin.js for proper password hashing
--- This SQL is for reference only
+--
+-- IMPORTANT: This SQL is for reference only. The real admin account is created
+-- with a properly bcrypt-hashed password by `backend/scripts/seed-admin.js`
+-- (run automatically by `npm run migrate`, or manually via `npm run seed:admin`).
+-- Do NOT use the placeholder hash below in production.
+--
+-- The script is idempotent: it skips insertion if the username already exists.
 
 INSERT INTO users (id, username, name, password, role, preferences, created_at, updated_at)
-VALUES (
+SELECT
     gen_random_uuid(),
     'nightmare',
     'Joshua Martin',
@@ -15,4 +19,6 @@ VALUES (
     '{}',
     NOW(),
     NOW()
-) ON CONFLICT (username) DO NOTHING;
+WHERE NOT EXISTS (
+    SELECT 1 FROM users WHERE username = 'nightmare'
+);

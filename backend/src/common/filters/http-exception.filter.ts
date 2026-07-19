@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 export interface ErrorResponse {
   statusCode: number;
@@ -20,6 +21,11 @@ export interface ErrorResponse {
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly isProduction: boolean;
+
+  constructor(private readonly configService?: ConfigService) {
+    this.isProduction = this.configService?.get<string>('NODE_ENV') === 'production';
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -44,12 +50,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         details = resp.details;
 
         if (Array.isArray(resp.message)) {
-          message = resp.message.join(', ');
-          details = resp.message;
+          message = this.isProduction ? 'Validation failed' : resp.message.join(', ');
+          details = this.isProduction ? undefined : resp.message;
         }
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      message = this.isProduction ? 'Internal server error' : exception.message;
       this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
     }
 

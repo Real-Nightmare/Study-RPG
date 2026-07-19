@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -43,7 +43,7 @@ export function CookiesPage() {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState('what-are-cookies');
 
-  const tableOfContents: TableOfContentsItem[] = [
+  const tableOfContents: TableOfContentsItem[] = useMemo(() => [
     { id: 'what-are-cookies', title: t('cookiesPage.toc.whatAreCookies'), icon: Info },
     { id: 'types-of-cookies', title: t('cookiesPage.toc.typesOfCookies'), icon: Layers },
     { id: 'how-we-use', title: t('cookiesPage.toc.howWeUse'), icon: Eye },
@@ -52,7 +52,7 @@ export function CookiesPage() {
     { id: 'cookie-settings', title: t('cookiesPage.toc.cookieSettings'), icon: SlidersHorizontal },
     { id: 'updates', title: t('cookiesPage.toc.policyUpdates'), icon: RefreshCw },
     { id: 'contact', title: t('cookiesPage.toc.contactUs'), icon: Mail },
-  ];
+  ], [t]);
 
   const cookieCategories: CookieCategory[] = [
     {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ export function TermsPage() {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState('acceptance');
 
-  const tableOfContents: TableOfContentsItem[] = [
+  const tableOfContents: TableOfContentsItem[] = useMemo(() => [
     { id: 'acceptance', title: t('termsPage.toc.acceptance'), icon: CheckCircle },
     { id: 'description', title: t('termsPage.toc.description'), icon: Briefcase },
     { id: 'user-accounts', title: t('termsPage.toc.userAccounts'), icon: UserCog },
@@ -48,7 +48,7 @@ export function TermsPage() {
     { id: 'changes', title: t('termsPage.toc.changes'), icon: RefreshCw },
     { id: 'governing-law', title: t('termsPage.toc.governingLaw'), icon: Scale },
     { id: 'contact', title: t('termsPage.toc.contact'), icon: Mail },
-  ];
+  ], [t]);
 
   useEffect(() => {
     const observerOptions = {
