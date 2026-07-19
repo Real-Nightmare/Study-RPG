@@ -3,6 +3,7 @@ import { API_CONFIG } from '@/config/api';
 
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _retryCount?: number;
 }
 
 const api: AxiosInstance = axios.create({
@@ -26,7 +27,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh
+// Response interceptor - handle token refresh and retry on server errors
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -66,6 +67,20 @@ api.interceptors.response.use(
       }
     }
 
+    // Retry on 502/503 (server cold start) with exponential backoff
+    const status = error.response?.status;
+    if (status === 502 || status === 503 || status === 504) {
+      const retryCount = originalRequest?._retryCount || 0;
+      if (retryCount < 3) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 8000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        if (originalRequest) {
+          originalRequest._retryCount = retryCount + 1;
+          return api(originalRequest);
+        }
+      }
+    }
 
     return Promise.reject(error);
   }

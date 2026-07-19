@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Public } from './common';
 import { DatabaseService } from './modules/database';
 import { RedisService } from './modules/redis';
+import { StorageService } from './modules/storage';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -11,6 +12,7 @@ interface HealthStatus {
   services: {
     database: boolean;
     redis: boolean;
+    storage: boolean;
   };
 }
 
@@ -20,6 +22,7 @@ export class HealthController {
   constructor(
     private readonly database: DatabaseService,
     private readonly redis: RedisService,
+    private readonly storage: StorageService,
   ) {}
 
   @Public()
@@ -27,13 +30,14 @@ export class HealthController {
   @ApiOperation({ summary: 'Health check endpoint' })
   @ApiResponse({ status: 200, description: 'Service health status' })
   async health(): Promise<HealthStatus> {
-    const [dbHealth, redisHealth] = await Promise.all([
+    const [dbHealth, redisHealth, storageHealth] = await Promise.all([
       this.database.healthCheck().catch(() => false),
       this.redis.healthCheck().catch(() => false),
+      this.storage.healthCheck().catch(() => false),
     ]);
 
-    const allHealthy = dbHealth && redisHealth;
-    const anyHealthy = dbHealth || redisHealth;
+    const allHealthy = dbHealth && redisHealth && storageHealth;
+    const anyHealthy = dbHealth || redisHealth || storageHealth;
 
     return {
       status: allHealthy ? 'healthy' : anyHealthy ? 'degraded' : 'unhealthy',
@@ -42,6 +46,7 @@ export class HealthController {
       services: {
         database: dbHealth,
         redis: redisHealth,
+        storage: storageHealth,
       },
     };
   }
@@ -52,7 +57,7 @@ export class HealthController {
   @ApiResponse({ status: 200, description: 'API info' })
   root() {
     return {
-      name: 'Studyield API',
+      name: 'Study RPG API',
       version: process.env.npm_package_version || '1.0.0',
       documentation: '/api/docs',
     };
