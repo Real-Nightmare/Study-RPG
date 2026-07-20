@@ -53,6 +53,28 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Redis connection closed');
   }
 
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.client.ping();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async exists(key: string): Promise<boolean> {
+    const result = await this.client.exists(key);
+    return result === 1;
+  }
+
+  async set(key: string, value: string, ttl?: number): Promise<void> {
+    if (ttl) {
+      await this.client.set(key, value, 'EX', ttl);
+    } else {
+      await this.client.set(key, value);
+    }
+  }
+
   getClient(): Redis {
     return this.client;
   }

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -7,12 +8,12 @@ import { AppModule } from './app.module';
 import { AuthService } from './modules/auth/auth.service';
 import * as bodyParser from 'body-parser';
 import { join } from 'path';
-import { createReadStream } from 'fs';
+import * as express from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Increase payload size limit to 50MB
   app.use(bodyParser.json({ limit: '50mb' }));
@@ -20,7 +21,7 @@ async function bootstrap() {
 
   // Serve uploaded files statically
   const uploadsDir = join(process.cwd(), 'uploads');
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
+  app.use('/uploads', express.static(uploadsDir));
 
   const configService = app.get(ConfigService);
 
