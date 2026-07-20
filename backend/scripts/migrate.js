@@ -134,30 +134,6 @@ async function seedAdmin() {
   }
 }
 
-    const bcrypt = require('bcrypt');
-    const { v4: uuidv4 } = require('uuid');
-    const hashedPassword = await bcrypt.hash(
-      process.env.ADMIN_DEFAULT_PASSWORD || 'N1GHTMAREISGoD@123',
-      12,
-    );
-
-    await pool.query(
-      `INSERT INTO users (id, username, name, password, role, preferences, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, 'admin', $5, NOW(), NOW())`,
-      [
-        uuidv4(),
-        (process.env.ADMIN_USERNAME || 'Nightmare').toLowerCase(),
-        process.env.ADMIN_NAME || 'Joshua Martin',
-        hashedPassword,
-        JSON.stringify({}),
-      ],
-    );
-    console.log(`Seeded admin account: ${process.env.ADMIN_USERNAME || 'Nightmare'}`);
-  } catch (err) {
-    console.error('Admin seed failed:', err.message);
-  }
-}
-
 migrate().catch(err => {
   console.error('Migration failed:', err);
   process.exit(1);

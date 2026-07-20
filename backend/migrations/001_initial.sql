@@ -437,24 +437,6 @@ CREATE TABLE IF NOT EXISTS learning_paths (
 
 CREATE INDEX idx_learning_paths_user_id ON learning_paths(user_id);
 
--- Subscriptions table
-CREATE TABLE IF NOT EXISTS subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    stripe_customer_id VARCHAR(255) NOT NULL,
-    stripe_subscription_id VARCHAR(255),
-    plan VARCHAR(50) DEFAULT 'free',
-    status VARCHAR(50) DEFAULT 'active',
-    current_period_start TIMESTAMP WITH TIME ZONE,
-    current_period_end TIMESTAMP WITH TIME ZONE,
-    cancel_at_period_end BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
-
 -- Usage Records table
 CREATE TABLE IF NOT EXISTS usage_records (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -522,4 +504,3 @@ CREATE TRIGGER update_problem_solving_sessions_updated_at BEFORE UPDATE ON probl
 CREATE TRIGGER update_teach_back_sessions_updated_at BEFORE UPDATE ON teach_back_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_research_sessions_updated_at BEFORE UPDATE ON research_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_learning_paths_updated_at BEFORE UPDATE ON learning_paths FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

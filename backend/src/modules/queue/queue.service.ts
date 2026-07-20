@@ -22,12 +22,20 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    this.connection = new IORedis({
-      host: this.configService.get<string>('REDIS_HOST'),
-      port: this.configService.get<number>('REDIS_PORT'),
-      password: this.configService.get<string>('REDIS_PASSWORD') || undefined,
-      maxRetriesPerRequest: null,
-    });
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+
+    if (redisUrl) {
+      this.connection = new IORedis(redisUrl, {
+        maxRetriesPerRequest: null,
+      });
+    } else {
+      this.connection = new IORedis({
+        host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+        port: this.configService.get<number>('REDIS_PORT', 6379),
+        password: this.configService.get<string>('REDIS_PASSWORD') || undefined,
+        maxRetriesPerRequest: null,
+      });
+    }
 
     this.connection.on('error', (err) => {
       this.logger.error('BullMQ Redis connection error', err);
