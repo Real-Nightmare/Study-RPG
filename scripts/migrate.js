@@ -21,25 +21,59 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 function getDatabaseUrl() {
-  // Check common env var names used by OpsCtrl and other platforms
-  const candidates = [
+  // Check connection string vars (OpsCtrl and common platforms)
+  const urlCandidates = [
     process.env.DATABASE_URL,
-    process.env.POSTGRES_URL,
-    process.env.POSTGRES_CONNECTION_STRING,
     process.env.DB_URL,
+    process.env.POSTGRES_URL,
     process.env.DATABASE_CONNECTION_STRING,
+    process.env.POSTGRES_CONNECTION_STRING,
   ].filter(Boolean);
 
-  if (candidates.length > 0) {
-    return candidates[0];
+  if (urlCandidates.length > 0) {
+    return urlCandidates[0];
   }
 
   // Fallback: construct from individual variables
-  const host = process.env.DATABASE_HOST || process.env.POSTGRES_HOST || 'localhost';
-  const port = process.env.DATABASE_PORT || process.env.POSTGRES_PORT || '5432';
-  const user = process.env.DATABASE_USER || process.env.POSTGRES_USER || 'postgres';
-  const password = process.env.DATABASE_PASSWORD || process.env.POSTGRES_PASSWORD || '';
-  const database = process.env.DATABASE_NAME || process.env.POSTGRES_DB || 'study_rpg';
+  // OpsCtrl injects multiple aliases for each field; prefer DATABASE_*,
+  // then DB_*, then POSTGRES_*, then PG* (libpq-compatible).
+  const host = [
+    process.env.DATABASE_HOST,
+    process.env.DB_HOST,
+    process.env.POSTGRES_HOST,
+    process.env.PGHOST,
+  ].find(Boolean) || 'localhost';
+
+  const port = [
+    process.env.DATABASE_PORT,
+    process.env.DB_PORT,
+    process.env.POSTGRES_PORT,
+    process.env.PGPORT,
+  ].find(Boolean) || '5432';
+
+  const user = [
+    process.env.DATABASE_USER,
+    process.env.DATABASE_USERNAME,
+    process.env.DB_USER,
+    process.env.DB_USERNAME,
+    process.env.POSTGRES_USER,
+    process.env.PGUSER,
+  ].find(Boolean) || 'postgres';
+
+  const password = [
+    process.env.DATABASE_PASSWORD,
+    process.env.DB_PASSWORD,
+    process.env.POSTGRES_PASSWORD,
+    process.env.PGPASSWORD,
+  ].find(Boolean) || '';
+
+  const database = [
+    process.env.DATABASE_NAME,
+    process.env.DB_NAME,
+    process.env.DB_DATABASE,
+    process.env.POSTGRES_DB,
+    process.env.PGDATABASE,
+  ].find(Boolean) || 'study_rpg';
 
   return `postgresql://${user}:${password}@${host}:${port}/${database}`;
 }

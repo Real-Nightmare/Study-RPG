@@ -10,7 +10,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    const redisUrl = this.configService.get<string>('REDIS_URL');
+    const redisUrl = this.configService.get<string>('REDIS_URL') ??
+      this.configService.get<string>('REDIS_CONNECTION_STRING') ??
+      this.configService.get<string>('CACHE_URL');
 
     if (redisUrl) {
       this.client = new Redis(redisUrl, {
@@ -24,10 +26,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         },
       });
     } else {
+      const host = this.configService.get<string>('REDIS_HOST') ??
+        this.configService.get<string>('REDIS_HOSTNAME') ??
+        'localhost';
+      const port = this.configService.get<number>('REDIS_PORT') ?? 6379;
+      const password = this.configService.get<string>('REDIS_PASSWORD') ??
+        this.configService.get<string>('REDIS_AUTH') ??
+        undefined;
+
       this.client = new Redis({
-        host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-        port: this.configService.get<number>('REDIS_PORT', 6379),
-        password: this.configService.get<string>('REDIS_PASSWORD') || undefined,
+        host,
+        port,
+        password,
         db: this.configService.get<number>('REDIS_DB', 0),
         retryStrategy: (times) => {
           if (times > 3) {

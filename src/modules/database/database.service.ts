@@ -30,13 +30,48 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         connectionTimeoutMillis: 30000,
       });
     } else {
-      // Fallback: individual DATABASE_HOST/PORT/USER/PASSWORD/NAME variables.
+      // Fallback: individual connection variables.
+      // OpsCtrl injects multiple aliases for each field; prefer DATABASE_*,
+      // then DB_*, then POSTGRES_*, then PG* (libpq-compatible).
+      const host = this.configService.get<string>('DATABASE_HOST') ??
+        this.configService.get<string>('DB_HOST') ??
+        this.configService.get<string>('POSTGRES_HOST') ??
+        this.configService.get<string>('PGHOST') ??
+        'localhost';
+
+      const port = this.configService.get<number>('DATABASE_PORT') ??
+        this.configService.get<number>('DB_PORT') ??
+        this.configService.get<number>('POSTGRES_PORT') ??
+        this.configService.get<number>('PGPORT') ??
+        5432;
+
+      const user = this.configService.get<string>('DATABASE_USER') ??
+        this.configService.get<string>('DATABASE_USERNAME') ??
+        this.configService.get<string>('DB_USER') ??
+        this.configService.get<string>('DB_USERNAME') ??
+        this.configService.get<string>('POSTGRES_USER') ??
+        this.configService.get<string>('PGUSER') ??
+        'postgres';
+
+      const password = this.configService.get<string>('DATABASE_PASSWORD') ??
+        this.configService.get<string>('DB_PASSWORD') ??
+        this.configService.get<string>('POSTGRES_PASSWORD') ??
+        this.configService.get<string>('PGPASSWORD') ??
+        '';
+
+      const database = this.configService.get<string>('DATABASE_NAME') ??
+        this.configService.get<string>('DB_NAME') ??
+        this.configService.get<string>('DB_DATABASE') ??
+        this.configService.get<string>('POSTGRES_DB') ??
+        this.configService.get<string>('PGDATABASE') ??
+        'study_rpg';
+
       this.pool = new Pool({
-        host: this.configService.get<string>('DATABASE_HOST'),
-        port: this.configService.get<number>('DATABASE_PORT'),
-        user: this.configService.get<string>('DATABASE_USER'),
-        password: this.configService.get<string>('DATABASE_PASSWORD'),
-        database: this.configService.get<string>('DATABASE_NAME'),
+        host,
+        port,
+        user,
+        password,
+        database,
         min: poolMin,
         max: poolMax,
         keepAlive: true,
