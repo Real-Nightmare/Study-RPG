@@ -3,6 +3,10 @@ export const API_CONFIG = {
   timeout: 30000,
 };
 
+if (!API_CONFIG.baseURL && typeof window !== 'undefined') {
+  console.warn('[Study RPG] VITE_API_URL is not set. API requests will fail.');
+}
+
 export const WS_URL = import.meta.env.VITE_WS_URL || '';
 
 if (!WS_URL && typeof window !== 'undefined') {
