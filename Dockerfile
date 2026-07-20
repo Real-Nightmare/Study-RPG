@@ -19,6 +19,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install netcat for wait-for-db script
+RUN apk add --no-cache netcat-openbsd
+
 # Copy built application
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
@@ -30,4 +33,4 @@ COPY --from=builder /app/scripts ./scripts
 EXPOSE 3010
 
 # Run migrations and start server
-CMD ["sh", "-c", "echo 'Starting backend server...' && echo 'Running migrations...' && npm run migrate && echo 'Migrations complete. Starting application...' && node dist/main.js"]
+CMD ["sh", "-c", "echo 'Starting backend server...' && scripts/wait-for-db.sh && echo 'Running migrations...' && npm run migrate && echo 'Migrations complete. Starting application...' && node dist/main.js"]

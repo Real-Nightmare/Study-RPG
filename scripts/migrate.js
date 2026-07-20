@@ -20,21 +20,72 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
-let pool;
+function getDatabaseUrl() {
+  // Check common env var names used by OpsCtrl and other platforms
+  const candidates = [
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+    process.env.POSTGRES_CONNECTION_STRING,
+    process.env.DB_URL,
+    process.env.DATABASE_CONNECTION_STRING,
+  ].filter(Boolean);
 
-if (process.env.DATABASE_URL) {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-} else {
-  pool = new Pool({
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432'),
-    user: process.env.DATABASE_USER || 'studyield',
-    password: process.env.DATABASE_PASSWORD || '',
-    database: process.env.DATABASE_NAME || 'studyield',
+  if (candidates.length > 0) {
+    return candidates[0];
+  }
+
+  // Fallback: construct from individual variables
+  const host = process.env.DATABASE_HOST || process.env.POSTGRES_HOST || 'localhost';
+  const port = process.env.DATABASE_PORT || process.env.POSTGRES_PORT || '5432';
+  const user = process.env.DATABASE_USER || process.env.POSTGRES_USER || 'postgres';
+  const password = process.env.DATABASE_PASSWORD || process.env.POSTGRES_PASSWORD || '';
+  const database = process.env.DATABASE_NAME || process.env.POSTGRES_DB || 'study_rpg';
+
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+}
+
+function createPool(connectionString) {
+  const sslEnabled = process.env.DATABASE_SSL === 'true' || /[?&]sslmode=require/.test(connectionString);
+  
+  return new Pool({
+    connectionString,
+    ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
+    min: 1,
+    max: 5,
+    keepAlive: true,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 30000,
   });
 }
 
+async function waitForDatabase(connectionString, maxRetries = 30, delayMs = 2000) {
+  console.log(`Waiting for database at ${connectionString.replace(/\/\/.*@/, '//***@')}...`);
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const pool = createPool(connectionString);
+      const client = await pool.connect();
+      client.release();
+      await pool.end();
+      console.log('Database is ready!');
+      return;
+    } catch (err) {
+      if (i === maxRetries - 1) {
+        throw new Error(`Database not ready after ${maxRetries} attempts: ${err.message}`);
+      }
+      console.log(`Database not ready yet (attempt ${i + 1}/${maxRetries}), retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function migrate() {
+  const connectionString = getDatabaseUrl();
+  console.log(`Using database: ${connectionString.replace(/\/\/.*@/, '//***@')}`);
+
+  await waitForDatabase(connectionString);
+
+  const pool = createPool(connectionString);
   const client = await pool.connect();
 
   try {
@@ -51,9 +102,7 @@ async function migrate() {
     const { rows: executed } = await client.query('SELECT name FROM migrations');
     const executedNames = new Set(executed.map(r => r.name));
 
-    // Get migration files. The canonical SQL migration set lives in
-    // <repo-root>/database/migrations. Resolve it relative to the backend
-    // directory (this script is in backend/scripts).
+    // Get migration files
     const backendDir = path.join(__dirname, '..');
     const candidates = [
       path.join(backendDir, '..', 'database', 'migrations'),
@@ -87,16 +136,14 @@ async function migrate() {
     }
 
     console.log('\nAll migrations completed successfully!');
-
-    // Seed the default admin account if it does not already exist
-    await seedAdmin();
+    await seedAdmin(pool);
   } finally {
     client.release();
     await pool.end();
   }
 }
 
-async function seedAdmin() {
+async function seedAdmin(pool) {
   const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD;
   if (!adminPassword) {
     console.log('ADMIN_DEFAULT_PASSWORD not set — skipping admin seed.');
