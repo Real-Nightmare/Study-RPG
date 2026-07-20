@@ -15,7 +15,7 @@ echo "======================================="
 
 DB_URL="${DATABASE_URL:-${DB_URL:-${POSTGRES_URL:-}}}"
 DB_HOST="${DATABASE_HOST:-${DB_HOST:-${POSTGRES_HOST:-${PGHOST:-}}}}"
-DB_PORT="${DATABASE_PORT:-${DB_PORT:-${POSTGRES_PORT:-${PGPORT:-5432}}}}"
+DB_PORT="${DATABASE_PORT:-${DATABASE_PORT:-${POSTGRES_PORT:-${PGPORT:-5432}}}}"
 
 if [ -n "$DB_URL" ]; then
   echo "Waiting for database from DATABASE_URL..."
@@ -33,14 +33,18 @@ fi
 
 MAX_RETRIES="${DATABASE_WAIT_RETRIES:-60}"
 DELAY_MS="${DATABASE_WAIT_DELAY:-2000}"
+DELAY_SECS=$((DELAY_MS / 1000))
+[ "$DELAY_SECS" -lt 1 ] && DELAY_SECS=1
 
-for i in $(seq 1 "$MAX_RETRIES"); do
+i=0
+while [ "$i" -lt "$MAX_RETRIES" ]; do
+  i=$((i + 1))
   if nc -z "$HOST" "$PORT" 2>/dev/null; then
     echo "PostgreSQL is ready after ${i} attempt(s)!"
     exit 0
   fi
   echo "PostgreSQL not ready yet (attempt ${i}/${MAX_RETRIES}), retrying in ${DELAY_MS}ms..."
-  sleep "$(echo "$DELAY_MS / 1000" | bc)"
+  sleep "$DELAY_SECS"
 done
 
 echo "PostgreSQL did not become ready in time — continuing anyway. NestJS will handle reconnection."
