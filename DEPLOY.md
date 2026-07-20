@@ -53,7 +53,7 @@ Blomp is S3-compatible and offers up to 400GB free storage.
 ### Fallback Behavior
 
 If Blomp credentials are not configured, the app automatically falls back to
-**local disk storage** (`backend/uploads/`). Files are served at `/uploads/:key`.
+**local disk storage** (`uploads/`). Files are served at `/uploads/:key`.
 This is useful for development or if you don't need external storage.
 
 ### Alternative Storage
@@ -66,11 +66,11 @@ You can also use any S3-compatible storage:
 ## Database Migrations
 
 Migrations live in `database/migrations/` and are applied in filename order by
-`backend/scripts/migrate.js` (the `npm run migrate` script). The script:
+`scripts/migrate.js` (the `npm run migrate` script). The script:
 
 - Creates a `migrations` bookkeeping table and skips any file already recorded.
 - Reads migrations from `../database/migrations` (relative to the backend dir),
-  falling back to `backend/migrations` for backward compatibility.
+  falling back to `migrations` for backward compatibility.
 - Wraps each file in a transaction; a failed migration is rolled back.
 - Seeds the default admin account on first run (idempotent — skips if it exists).
 
@@ -93,7 +93,7 @@ DATABASE_URL=<postgres-connection-string> npm run migrate
   `ON CONFLICT DO NOTHING`, so the script is safe to run multiple times.
   Apply with: `psql "$DATABASE_URL" -f database/seed/seed_game_content.sql`
 - `database/seed/seed_admin.sql` — reference only. The real admin account is created
-  with a bcrypt-hashed password by `backend/scripts/seed-admin.js`, which runs
+  with a bcrypt-hashed password by `scripts/seed-admin.js`, which runs
   automatically during `npm run migrate`. (The SQL file is also idempotent.)
 - Admin credentials:
   - **Username**: `Nightmare`
@@ -192,7 +192,7 @@ A full local stack (Postgres, Redis) is also available via Docker Compose:
 
 ### Storage Issues
 - If Blomp is configured, verify `BLOMP_*` env vars are set correctly.
-- If Blomp is not configured, files are stored locally in `backend/uploads/`.
+- If Blomp is not configured, files are stored locally in `uploads/`.
 - Check backend logs for storage initialization messages.
 
 ## Tech Stack

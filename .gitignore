@@ -15,12 +15,6 @@ out/
 .env.*.local
 .env.production
 .env.*.production
-backend/.env.production
-backend/.env.local
-backend/.env.example.production
-frontend/.env
-frontend/.env.production
-frontend/.env.local
 
 # IDE
 .vscode/
@@ -58,7 +52,7 @@ tmp/
 uploads/
 
 # Database
-backend/db/backups/
+db/backups/
 *.sql.bak
 
 # Large media files (use CDN instead)
@@ -80,14 +74,8 @@ secrets/
 *.bak
 *.backup
 
-# Internal development docs
-.claude/
-backend/.claude/
-docs/internal/
-
 # Local development
 .local/
 
 # Misc
 .cache/
-DeepTutor/

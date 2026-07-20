@@ -34,7 +34,7 @@ Frontend (Render Static Site) → Backend (Render Web Service, NestJS) → Datab
 │   ├── vite.config.ts
 │   └── .env.example
 │
-├── backend/           # NestJS app → Render Web Service
+├── src/                # NestJS app source code
 │   ├── src/
 │   │   ├── modules/              # Feature modules (auth, rpg, chat, etc.)
 │   │   ├── common/               # Guards, decorators, filters, gateways
